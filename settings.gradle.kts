@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MacroTracker"
+rootProject.name = "AI Macro Tracker"
 include(":app")

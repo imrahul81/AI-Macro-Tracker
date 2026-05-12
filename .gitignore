@@ -1,15 +1,32 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
+# Built variants
+**/build/
 /captures
+
+# IntelliJ project files
+*.iml
+.idea/
+!.idea/vcs.xml
+!.idea/runConfigurations/
+!.idea/inspectionProfiles/
+!.idea/codeStyles/
+!.idea/copyright/
+!.idea/dictionary.xml
+
+# Local configuration file (contains credentials and paths)
+local.properties
+
+# Gradle files
+.gradle
+gradle-app.setting
+!gradle-wrapper.jar
+
+# External Native Build
 .externalNativeBuild
 .cxx
-local.properties
+
+# Log files
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
