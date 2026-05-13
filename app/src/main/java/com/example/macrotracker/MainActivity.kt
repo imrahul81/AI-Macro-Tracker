@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,7 +28,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -177,9 +177,7 @@ fun MainScreenContent(
                 HistoryScreenContent(historyFoods)
             }
             composable(Screen.Profile.route) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Profile Coming Soon")
-                }
+                ProfileScreenContent()
             }
         }
     }
@@ -572,6 +570,282 @@ fun MacroBadge(label: String, value: String, bgColor: Color, textColor: Color) {
             Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
             Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = textColor)
         }
+    }
+}
+
+@Composable
+fun ProfileScreenContent() {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFB))
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        item {
+            ProfileHeader()
+        }
+        item {
+            PersonalInfoSection()
+        }
+        item {
+            NutritionalGoalsSection()
+        }
+        item {
+            AccountSection()
+        }
+        item {
+            OutlinedButton(
+                onClick = { },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFC0392B)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC0392B))
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Logout", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileHeader() {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(contentAlignment = Alignment.BottomEnd) {
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .padding(4.dp)
+                    .background(Color(0xFF2ECC71), CircleShape)
+                    .padding(2.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+            ) {
+                // Image Placeholder
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    tint = Color.LightGray
+                )
+            }
+            Surface(
+                modifier = Modifier.size(32.dp),
+                shape = CircleShape,
+                color = Color(0xFF006D37),
+                shadowElevation = 4.dp
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "Edit Profile",
+                    tint = Color.White,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            "Alex Johnson",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Surface(
+            color = Color(0xFF2ECC71),
+            shape = CircleShape
+        ) {
+            Text(
+                "Pro Member",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                color = Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+fun PersonalInfoSection() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Personal Info", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                TextButton(onClick = { }) {
+                    Text("Edit", color = Color(0xFF006D37), fontWeight = FontWeight.Bold)
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                InfoItem(label = "Height", value = "182 cm", modifier = Modifier.weight(1f))
+                InfoItem(label = "Weight", value = "78.5 kg", modifier = Modifier.weight(1f))
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                InfoItem(label = "Age", value = "29 years", modifier = Modifier.weight(1f))
+                InfoItem(label = "Activity Level", value = "Very Active", modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+fun InfoItem(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+        Spacer(modifier = Modifier.height(4.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color(0xFFF2F4F5),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                value,
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+fun NutritionalGoalsSection() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Nutritional Goals", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                IconButton(onClick = { }) {
+                    Icon(Icons.Default.Tune, contentDescription = "Edit Goals", tint = Color(0xFF006D37))
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color(0xFFF2F4F5),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color(0xFF006D37))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Daily Calories", style = MaterialTheme.typography.bodyLarge)
+                    }
+                    Text("2,850 kcal", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFF446180))
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                MacroGoalBadge("Protein", "180g", Color(0xFFE3F2FD), Color(0xFF1976D2), modifier = Modifier.weight(1f))
+                MacroGoalBadge("Carbs", "320g", Color(0xFFE8F5E9), Color(0xFF2E7D32), modifier = Modifier.weight(1f))
+                MacroGoalBadge("Fats", "75g", Color(0xFFF8FAFB), Color(0xFF446180), modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+fun MacroGoalBadge(label: String, value: String, bgColor: Color, textColor: Color, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = bgColor,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = textColor)
+        }
+    }
+}
+
+@Composable
+fun AccountSection() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Text(
+                "Account",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            AccountItem(label = "Email Address", value = "alex.j@example.com")
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF2F4F5))
+            AccountItem(label = "Password", value = "••••••••••••")
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF2F4F5))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = Color(0xFF446180))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("Push Notifications", style = MaterialTheme.typography.bodyLarge)
+                }
+                var notificationsEnabled by remember { mutableStateOf(true) }
+                Switch(
+                    checked = notificationsEnabled,
+                    onCheckedChange = { notificationsEnabled = it },
+                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF2ECC71))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AccountItem(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+            Text(value, style = MaterialTheme.typography.bodyLarge)
+        }
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
     }
 }
 
@@ -1114,5 +1388,13 @@ fun LogFoodScreenPreview() {
 fun HistoryScreenPreview() {
     MacroTrackerTheme {
         HistoryScreenContent(foods = sampleFoodEntities)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ProfileScreenPreview() {
+    MacroTrackerTheme {
+        ProfileScreenContent()
     }
 }
