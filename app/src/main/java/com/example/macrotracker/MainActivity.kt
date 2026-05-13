@@ -33,6 +33,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.example.macrotracker.data.FoodEntity
 import com.example.macrotracker.ui.theme.MacroTrackerTheme
 import java.text.SimpleDateFormat
@@ -50,11 +56,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-sealed class Screen(val route: String) {
-    data object Dashboard : Screen("dashboard")
-    data object LogFood : Screen("log_food")
-    data object History : Screen("history")
-    data object Profile : Screen("profile")
+sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
+    data object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.GridView)
+    data object LogFood : Screen("log_food", "Log Food", Icons.Default.AddCircleOutline)
+    data object History : Screen("history", "History", Icons.Default.History)
+    data object Profile : Screen("profile", "Profile", Icons.Default.PersonOutline)
 }
 
 @Composable
@@ -85,7 +91,9 @@ fun MainScreenContent(
     onConfirmMeal: (MacroResponse) -> Unit,
     onResetState: () -> Unit
 ) {
-    val screenState = remember { mutableStateOf<Screen>(Screen.Dashboard) }
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -95,55 +103,43 @@ fun MainScreenContent(
                 containerColor = Color.White,
                 tonalElevation = 8.dp
             ) {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.GridView, contentDescription = "Dashboard") },
-                    label = { Text("Dashboard") },
-                    selected = screenState.value == Screen.Dashboard,
-                    onClick = { screenState.value = Screen.Dashboard },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = Color(0xFF006D37),
-                        indicatorColor = Color(0xFF2ECC71)
-                    )
+                val screens = listOf(
+                    Screen.Dashboard,
+                    Screen.LogFood,
+                    Screen.History,
+                    Screen.Profile
                 )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.AddCircleOutline, contentDescription = "Log Food") },
-                    label = { Text("Log Food") },
-                    selected = screenState.value == Screen.LogFood,
-                    onClick = { screenState.value = Screen.LogFood },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = Color(0xFF006D37),
-                        indicatorColor = Color(0xFF2ECC71)
+                screens.forEach { screen ->
+                    NavigationBarItem(
+                        icon = { Icon(screen.icon, contentDescription = screen.label) },
+                        label = { Text(screen.label) },
+                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                        onClick = {
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color.White,
+                            selectedTextColor = Color(0xFF006D37),
+                            indicatorColor = Color(0xFF2ECC71)
+                        )
                     )
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.History, contentDescription = "History") },
-                    label = { Text("History") },
-                    selected = screenState.value == Screen.History,
-                    onClick = { screenState.value = Screen.History },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = Color(0xFF006D37),
-                        indicatorColor = Color(0xFF2ECC71)
-                    )
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.PersonOutline, contentDescription = "Profile") },
-                    label = { Text("Profile") },
-                    selected = screenState.value == Screen.Profile,
-                    onClick = { screenState.value = Screen.Profile },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = Color(0xFF006D37),
-                        indicatorColor = Color(0xFF2ECC71)
-                    )
-                )
+                }
             }
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { screenState.value = Screen.LogFood },
+                onClick = {
+                    navController.navigate(Screen.LogFood.route) {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 containerColor = Color(0xFF2ECC71),
                 contentColor = Color.White,
                 shape = CircleShape,
@@ -153,22 +149,37 @@ fun MainScreenContent(
             }
         }
     ) { innerPadding ->
-        Box(
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Dashboard.route,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when (screenState.value) {
-                Screen.Dashboard -> MainDashboardContent(loggedFoods)
-                Screen.LogFood -> LogFoodScreenContent(
+            composable(Screen.Dashboard.route) {
+                MainDashboardContent(loggedFoods)
+            }
+            composable(Screen.LogFood.route) {
+                LogFoodScreenContent(
                     uiState = uiState,
                     recentMeals = recentMeals,
                     onAnalyzeMeal = onAnalyzeMeal,
-                    onConfirmMeal = onConfirmMeal,
+                    onConfirmMeal = {
+                        onConfirmMeal(it)
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Dashboard.route) { inclusive = true }
+                        }
+                    },
                     onResetState = onResetState
                 )
-                Screen.History -> HistoryScreenContent(historyFoods)
-                else -> Text("Coming Soon")
+            }
+            composable(Screen.History.route) {
+                HistoryScreenContent(historyFoods)
+            }
+            composable(Screen.Profile.route) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Profile Coming Soon")
+                }
             }
         }
     }
