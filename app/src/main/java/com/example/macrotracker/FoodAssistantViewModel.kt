@@ -1,6 +1,9 @@
 package com.example.macrotracker
 
 import android.app.Application
+import android.content.Context
+import android.content.SharedPreferences
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +47,7 @@ data class MacroResponse(
 
 class FoodAssistantViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: FoodRepository
+    private val prefs: SharedPreferences = application.getSharedPreferences("user_profile", Context.MODE_PRIVATE)
 
     init {
         val foodDao = FoodDatabase.getDatabase(application).foodDao()
@@ -66,6 +70,49 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
         private set
     
     val recentMeals = mutableStateListOf("Oatmeal", "Greek Yogurt")
+
+    // User Profile State with Persistence
+    private var _profileImageUri by mutableStateOf<Uri?>(
+        prefs.getString("profile_image_uri", null)?.let { Uri.parse(it) }
+    )
+    var profileImageUri: Uri?
+        get() = _profileImageUri
+        set(value) {
+            _profileImageUri = value
+            prefs.edit().putString("profile_image_uri", value?.toString()).apply()
+        }
+
+    private var _height by mutableStateOf(prefs.getString("height", "182") ?: "182")
+    var height: String
+        get() = _height
+        set(value) {
+            _height = value
+            prefs.edit().putString("height", value).apply()
+        }
+
+    private var _weight by mutableStateOf(prefs.getString("weight", "78.5") ?: "78.5")
+    var weight: String
+        get() = _weight
+        set(value) {
+            _weight = value
+            prefs.edit().putString("weight", value).apply()
+        }
+
+    private var _age by mutableStateOf(prefs.getString("age", "29") ?: "29")
+    var age: String
+        get() = _age
+        set(value) {
+            _age = value
+            prefs.edit().putString("age", value).apply()
+        }
+
+    private var _activityLevel by mutableStateOf(prefs.getString("activity_level", "Very Active") ?: "Very Active")
+    var activityLevel: String
+        get() = _activityLevel
+        set(value) {
+            _activityLevel = value
+            prefs.edit().putString("activity_level", value).apply()
+        }
 
     private val json = Json { 
         ignoreUnknownKeys = true 

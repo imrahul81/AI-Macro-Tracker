@@ -6,10 +6,12 @@ import android.speech.RecognizerIntent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -76,6 +78,7 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
     val recentMeals = viewModel.recentMeals
 
     MainScreenContent(
+        viewModel = viewModel,
         loggedFoods = loggedFoods,
         historyFoods = historyFoods,
         uiState = uiState,
@@ -88,6 +91,7 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
 
 @Composable
 fun MainScreenContent(
+    viewModel: FoodAssistantViewModel,
     loggedFoods: List<FoodEntity>,
     historyFoods: List<FoodEntity>,
     uiState: FoodAssistantUiState,
@@ -196,7 +200,7 @@ fun MainScreenContent(
                 HistoryScreenContent(historyFoods)
             }
             composable(Screen.Profile.route) {
-                ProfileScreenContent()
+                ProfileScreenContent(viewModel)
             }
         }
     }
@@ -606,7 +610,26 @@ fun MacroBadge(label: String, value: String, bgColor: Color, textColor: Color) {
 }
 
 @Composable
-fun ProfileScreenContent() {
+fun ProfileScreenContent(viewModel: FoodAssistantViewModel) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var isEditing by remember { mutableStateOf(false) }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                // Not a persistable URI, but we'll still try to use it
+            }
+            viewModel.profileImageUri = it
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -616,10 +639,28 @@ fun ProfileScreenContent() {
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item {
-            ProfileHeader()
+            ProfileHeader(
+                imageUri = viewModel.profileImageUri,
+                onEditImage = { 
+                    imagePickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }
+            )
         }
         item {
-            PersonalInfoSection()
+            PersonalInfoSection(
+                height = viewModel.height,
+                weight = viewModel.weight,
+                age = viewModel.age,
+                activityLevel = viewModel.activityLevel,
+                isEditing = isEditing,
+                onEditClick = { isEditing = !isEditing },
+                onHeightChange = { viewModel.height = it },
+                onWeightChange = { viewModel.weight = it },
+                onAgeChange = { viewModel.age = it },
+                onActivityLevelChange = { viewModel.activityLevel = it }
+            )
         }
         item {
             NutritionalGoalsSection()
@@ -646,7 +687,7 @@ fun ProfileScreenContent() {
 }
 
 @Composable
-fun ProfileHeader() {
+fun ProfileHeader(imageUri: android.net.Uri?, onEditImage: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(contentAlignment = Alignment.BottomEnd) {
             Box(
@@ -660,23 +701,33 @@ fun ProfileHeader() {
                     .clip(CircleShape)
                     .background(Color.White)
             ) {
-                // Image Placeholder
-                Icon(
-                    Icons.Default.Person,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    tint = Color.LightGray
-                )
+                if (imageUri != null) {
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        tint = Color.LightGray
+                    )
+                }
             }
             Surface(
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier
+                    .size(32.dp)
+                    .clickable { onEditImage() },
                 shape = CircleShape,
                 color = Color(0xFF006D37),
                 shadowElevation = 4.dp
             ) {
                 Icon(
                     Icons.Default.Edit,
-                    contentDescription = "Edit Profile",
+                    contentDescription = "Edit Profile Image",
                     tint = Color.White,
                     modifier = Modifier.padding(8.dp)
                 )
@@ -705,7 +756,18 @@ fun ProfileHeader() {
 }
 
 @Composable
-fun PersonalInfoSection() {
+fun PersonalInfoSection(
+    height: String,
+    weight: String,
+    age: String,
+    activityLevel: String,
+    isEditing: Boolean,
+    onEditClick: () -> Unit,
+    onHeightChange: (String) -> Unit,
+    onWeightChange: (String) -> Unit,
+    onAgeChange: (String) -> Unit,
+    onActivityLevelChange: (String) -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -719,40 +781,156 @@ fun PersonalInfoSection() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Personal Info", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                TextButton(onClick = { }) {
-                    Text("Edit", color = Color(0xFF006D37), fontWeight = FontWeight.Bold)
+                TextButton(onClick = onEditClick) {
+                    Text(if (isEditing) "Save" else "Edit", color = Color(0xFF006D37), fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                InfoItem(label = "Height", value = "182 cm", modifier = Modifier.weight(1f))
-                InfoItem(label = "Weight", value = "78.5 kg", modifier = Modifier.weight(1f))
+                EditableInfoItem(
+                    label = "Height",
+                    value = height,
+                    unit = "cm",
+                    isEditing = isEditing,
+                    onValueChange = onHeightChange,
+                    modifier = Modifier.weight(1f)
+                )
+                EditableInfoItem(
+                    label = "Weight",
+                    value = weight,
+                    unit = "kg",
+                    isEditing = isEditing,
+                    onValueChange = onWeightChange,
+                    modifier = Modifier.weight(1f)
+                )
             }
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                InfoItem(label = "Age", value = "29 years", modifier = Modifier.weight(1f))
-                InfoItem(label = "Activity Level", value = "Very Active", modifier = Modifier.weight(1f))
+                EditableInfoItem(
+                    label = "Age",
+                    value = age,
+                    unit = "years",
+                    isEditing = isEditing,
+                    onValueChange = onAgeChange,
+                    modifier = Modifier.weight(1f)
+                )
+                ActivityLevelDropdown(
+                    value = activityLevel,
+                    isEditing = isEditing,
+                    onValueChange = onActivityLevelChange,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ActivityLevelDropdown(
+    value: String,
+    isEditing: Boolean,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val options = listOf("Sedentary", "Lightly active", "Moderately active", "Very active")
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        Text("Activity Level", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        if (isEditing) {
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TextField(
+                    value = value,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color(0xFFF2F4F5),
+                        unfocusedContainerColor = Color(0xFFF2F4F5),
+                        focusedIndicatorColor = Color(0xFF006D37)
+                    )
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.background(Color.White)
+                ) {
+                    options.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                onValueChange(option)
+                                expanded = false
+                            },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                        )
+                    }
+                }
+            }
+        } else {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color(0xFFF2F4F5),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = value,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }
 }
 
 @Composable
-fun InfoItem(label: String, value: String, modifier: Modifier = Modifier) {
+fun EditableInfoItem(
+    label: String,
+    value: String,
+    unit: String,
+    isEditing: Boolean,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
         Spacer(modifier = Modifier.height(4.dp))
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = Color(0xFFF2F4F5),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(
-                value,
-                modifier = Modifier.padding(12.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium
+        if (isEditing) {
+            TextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color(0xFFF2F4F5),
+                    unfocusedContainerColor = Color(0xFFF2F4F5),
+                    focusedIndicatorColor = Color(0xFF006D37)
+                )
             )
+        } else {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color(0xFFF2F4F5),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = if (unit.isNotEmpty()) "$value $unit" else value,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }
@@ -1669,6 +1847,7 @@ val sampleFoodEntities = listOf(
 fun DashboardScreenPreview() {
     MacroTrackerTheme {
         MainScreenContent(
+            viewModel = viewModel(),
             loggedFoods = sampleFoodEntities,
             historyFoods = sampleFoodEntities,
             uiState = FoodAssistantUiState.Idle,
@@ -1706,6 +1885,7 @@ fun HistoryScreenPreview() {
 @Composable
 fun ProfileScreenPreview() {
     MacroTrackerTheme {
-        ProfileScreenContent()
+        // Mock ViewModel for preview
+        ProfileScreenContent(viewModel())
     }
 }
