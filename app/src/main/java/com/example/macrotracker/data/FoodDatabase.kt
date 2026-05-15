@@ -14,7 +14,8 @@ data class FoodEntity(
     val carbs: Int,
     val fat: Int,
     val timestamp: Long, // Use for date grouping
-    val time: String // e.g. "08:15 AM"
+    val time: String, // e.g. "08:15 AM"
+    val imageUrl: String? = null
 )
 
 @Dao
@@ -29,7 +30,7 @@ interface FoodDao {
     fun getFoodsForDay(startOfDay: Long, endOfDay: Long): Flow<List<FoodEntity>>
 }
 
-@Database(entities = [FoodEntity::class], version = 1)
+@Database(entities = [FoodEntity::class], version = 2)
 abstract class FoodDatabase : RoomDatabase() {
     abstract fun foodDao(): FoodDao
 
@@ -43,7 +44,9 @@ abstract class FoodDatabase : RoomDatabase() {
                     context.applicationContext,
                     FoodDatabase::class.java,
                     "food_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }

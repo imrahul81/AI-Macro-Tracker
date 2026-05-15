@@ -28,7 +28,8 @@ data class FoodItemAnalysis(
     val calories: Int,
     val protein: Int,
     val carbs: Int,
-    val fat: Int
+    val fat: Int,
+    val imageUrl: String? = null
 )
 
 @Serializable
@@ -86,6 +87,7 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
                     2. Estimate calories, protein, carbs, and fat for each item.
                     3. Calculate the total values for the entire meal.
                     4. 'description' should be a very short detail about the preparation (e.g., 'Large', '30g slice', 'Boiled').
+                    5. Provide a realistic image URL for each food item from a public source like Unsplash (e.g., https://images.unsplash.com/photo-...) or similar. Use high quality food images.
                     
                     JSON Structure:
                     {
@@ -97,7 +99,8 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
                           "calories": integer,
                           "protein": integer,
                           "carbs": integer,
-                          "fat": integer
+                          "fat": integer,
+                          "imageUrl": "string"
                         }
                       ],
                       "totalCalories": integer,
@@ -149,7 +152,8 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
                     carbs = item.carbs,
                     fat = item.fat,
                     timestamp = now.timeInMillis,
-                    time = timeFormat.format(now.time)
+                    time = timeFormat.format(now.time),
+                    imageUrl = item.imageUrl
                 )
                 repository.insert(newEntity)
             }

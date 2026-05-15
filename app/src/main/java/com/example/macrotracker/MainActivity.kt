@@ -44,6 +44,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.example.macrotracker.data.FoodEntity
 import com.example.macrotracker.ui.theme.MacroTrackerTheme
 
@@ -203,6 +204,17 @@ fun MainScreenContent(
 
 @Composable
 fun MainDashboardContent(foods: List<FoodEntity>) {
+    val totalCalories = foods.sumOf { it.calories }
+    val totalProtein = foods.sumOf { it.protein }
+    val totalCarbs = foods.sumOf { it.carbs }
+    val totalFat = foods.sumOf { it.fat }
+
+    // Hardcoded goals for now
+    val calorieGoal = 2000
+    val proteinGoal = 150
+    val carbsGoal = 250
+    val fatGoal = 70
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -211,7 +223,7 @@ fun MainDashboardContent(foods: List<FoodEntity>) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            CalorieOverview()
+            CalorieOverview(totalCalories, calorieGoal)
         }
         item {
             Row(
@@ -220,22 +232,22 @@ fun MainDashboardContent(foods: List<FoodEntity>) {
             ) {
                 MacroCard(
                     label = "Protein",
-                    value = "120g",
-                    progress = 0.7f,
+                    value = "${totalProtein}g",
+                    progress = (totalProtein.toFloat() / proteinGoal).coerceIn(0f, 1f),
                     color = Color(0xFF006D37),
                     modifier = Modifier.weight(1f)
                 )
                 MacroCard(
                     label = "Carbs",
-                    value = "180g",
-                    progress = 0.5f,
+                    value = "${totalCarbs}g",
+                    progress = (totalCarbs.toFloat() / carbsGoal).coerceIn(0f, 1f),
                     color = Color(0xFF446180),
                     modifier = Modifier.weight(1f)
                 )
                 MacroCard(
                     label = "Fats",
-                    value = "45g",
-                    progress = 0.4f,
+                    value = "${totalFat}g",
+                    progress = (totalFat.toFloat() / fatGoal).coerceIn(0f, 1f),
                     color = Color(0xFF006397),
                     modifier = Modifier.weight(1f)
                 )
@@ -985,12 +997,23 @@ fun LogFoodScreenContent(
                 Button(
                     onClick = { onAnalyzeMeal(mealInput) },
                     modifier = Modifier.align(Alignment.End),
+                    enabled = uiState !is FoodAssistantUiState.Loading,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006D37)),
                     shape = RoundedCornerShape(24.dp)
                 ) {
-                    Text("Analyze")
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                    if (uiState is FoodAssistantUiState.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Analyzing...")
+                    } else {
+                        Text("Analyze")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                    }
                 }
             }
         }
@@ -1047,29 +1070,6 @@ fun LogFoodScreenContent(
 
         // Show result overlay - REMOVED, replaced by navigation to ReviewMeal
         
-        if (uiState is FoodAssistantUiState.Loading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularProgressIndicator(color = Color(0xFF006D37))
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Analyzing with AI...", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-
         if (uiState is FoodAssistantUiState.Error) {
             AlertDialog(
                 onDismissRequest = onResetState,
@@ -1291,9 +1291,21 @@ fun DetectedItemCard(item: FoodItemAnalysis) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(item.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(item.description, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    AsyncImage(
+                        model = item.imageUrl ?: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop",
+                        contentDescription = item.name,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFFF2F4F5)),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(item.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(item.description, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    }
                 }
                 IconButton(onClick = { }) {
                     Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray)
@@ -1414,14 +1426,17 @@ fun VitalityTopBar() {
 }
 
 @Composable
-fun CalorieOverview() {
+fun CalorieOverview(consumed: Int, goal: Int) {
+    val progress = (consumed.toFloat() / goal).coerceIn(0f, 1f)
+    val percentage = (progress * 100).toInt()
+    
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(contentAlignment = Alignment.Center) {
             MacroRing(
-                progress = 0.75f,
+                progress = progress,
                 color = Color(0xFF2ECC71),
                 size = 240.dp,
                 strokeWidth = 24.dp,
@@ -1429,13 +1444,13 @@ fun CalorieOverview() {
             )
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    "1,500",
+                    String.format("%, d", consumed),
                     style = MaterialTheme.typography.displayLarge,
                     fontWeight = FontWeight.Bold,
                     fontSize = 48.sp
                 )
                 Text(
-                    "/ 2,000 KCAL",
+                    "/ $goal KCAL",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray,
                     fontWeight = FontWeight.Bold
@@ -1446,7 +1461,7 @@ fun CalorieOverview() {
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        "75% GOAL",
+                        "$percentage% GOAL",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         color = Color(0xFF006D37),
                         style = MaterialTheme.typography.labelLarge,
@@ -1526,11 +1541,14 @@ fun FoodListItemEntity(foodEntity: FoodEntity) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            AsyncImage(
+                model = foodEntity.imageUrl ?: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop",
+                contentDescription = foodEntity.name,
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF2F4F5))
+                    .background(Color(0xFFF2F4F5)),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -1576,14 +1594,15 @@ fun FoodListItem(foodItem: FoodItem) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            AsyncImage(
+                model = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop",
+                contentDescription = foodItem.name,
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFEEEEEE))
-            ) {
-                // Image placeholder
-            }
+                    .background(Color(0xFFEEEEEE)),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
