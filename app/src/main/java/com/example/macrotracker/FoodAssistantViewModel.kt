@@ -21,12 +21,23 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Serializable
-data class MacroResponse(
+data class FoodItemAnalysis(
     val name: String,
+    val description: String,
     val calories: Int,
     val protein: Int,
     val carbs: Int,
     val fat: Int
+)
+
+@Serializable
+data class MacroResponse(
+    val originalInput: String,
+    val items: List<FoodItemAnalysis>,
+    val totalCalories: Int,
+    val totalProtein: Int,
+    val totalCarbs: Int,
+    val totalFat: Int
 )
 
 class FoodAssistantViewModel(application: Application) : AndroidViewModel(application) {
@@ -62,7 +73,24 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             try {
                 val prompt = """
                     Analyze the following meal description and provide the nutritional information in JSON format.
-                    The JSON should have fields: name, calories, protein, carbs, fat.
+                    The JSON should match this structure:
+                    {
+                      "originalInput": "the input text",
+                      "items": [
+                        {
+                          "name": "item name",
+                          "description": "short description (e.g. boiled or poached)",
+                          "calories": 100,
+                          "protein": 10,
+                          "carbs": 5,
+                          "fat": 2
+                        }
+                      ],
+                      "totalCalories": 100,
+                      "totalProtein": 10,
+                      "totalCarbs": 5,
+                      "totalFat": 2
+                    }
                     Meal description: $input
                     Only return the JSON.
                 """.trimIndent()
@@ -102,17 +130,19 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
                 else -> "Dinner"
             }
 
-            val newEntity = FoodEntity(
-                name = macro.name,
-                mealType = mealType,
-                calories = macro.calories,
-                protein = macro.protein,
-                carbs = macro.carbs,
-                fat = macro.fat,
-                timestamp = now.timeInMillis,
-                time = timeFormat.format(now.time)
-            )
-            repository.insert(newEntity)
+            macro.items.forEach { item ->
+                val newEntity = FoodEntity(
+                    name = item.name,
+                    mealType = mealType,
+                    calories = item.calories,
+                    protein = item.protein,
+                    carbs = item.carbs,
+                    fat = item.fat,
+                    timestamp = now.timeInMillis,
+                    time = timeFormat.format(now.time)
+                )
+                repository.insert(newEntity)
+            }
             uiState = FoodAssistantUiState.Idle
         }
     }

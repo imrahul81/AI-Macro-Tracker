@@ -1,8 +1,12 @@
 package com.example.macrotracker
 
+import android.content.Intent
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -13,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.outlined.Settings
@@ -41,8 +46,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.macrotracker.data.FoodEntity
 import com.example.macrotracker.ui.theme.MacroTrackerTheme
-import java.text.SimpleDateFormat
-import java.util.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,6 +64,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object LogFood : Screen("log_food", "Log Food", Icons.Default.AddCircleOutline)
     data object History : Screen("history", "History", Icons.Default.History)
     data object Profile : Screen("profile", "Profile", Icons.Default.PersonOutline)
+    data object ReviewMeal : Screen("review_meal", "Review Meal", Icons.Default.CheckCircle)
 }
 
 @Composable
@@ -164,14 +168,27 @@ fun MainScreenContent(
                     uiState = uiState,
                     recentMeals = recentMeals,
                     onAnalyzeMeal = onAnalyzeMeal,
-                    onConfirmMeal = {
-                        onConfirmMeal(it)
-                        navController.navigate(Screen.Dashboard.route) {
-                            popUpTo(Screen.Dashboard.route) { inclusive = true }
-                        }
-                    },
-                    onResetState = onResetState
+                    onSuccess = {
+                        navController.navigate(Screen.ReviewMeal.route)
+                    }
                 )
+            }
+            composable(Screen.ReviewMeal.route) {
+                if (uiState is FoodAssistantUiState.Success) {
+                    ReviewMealScreenContent(
+                        macro = uiState.macro,
+                        onConfirmMeal = {
+                            onConfirmMeal(it)
+                            navController.navigate(Screen.Dashboard.route) {
+                                popUpTo(Screen.Dashboard.route) { inclusive = true }
+                            }
+                        },
+                        onBack = {
+                            onResetState()
+                            navController.popBackStack()
+                        }
+                    )
+                }
             }
             composable(Screen.History.route) {
                 HistoryScreenContent(historyFoods)
@@ -403,6 +420,8 @@ fun HistorySummaryCard() {
                     Text("642", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
             }
+
+            Spacer(modifier = Modifier.width(16.dp))
             
             Column {
                 Text("EATEN", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
@@ -855,10 +874,27 @@ fun LogFoodScreenContent(
     uiState: FoodAssistantUiState,
     recentMeals: List<String>,
     onAnalyzeMeal: (String) -> Unit,
-    onConfirmMeal: (MacroResponse) -> Unit,
-    onResetState: () -> Unit
+    onSuccess: () -> Unit
 ) {
     var mealInput by remember { mutableStateOf("") }
+
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val data = result.data
+            val results = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            if (!results.isNullOrEmpty()) {
+                mealInput = results[0]
+            }
+        }
+    }
+
+    LaunchedEffect(uiState) {
+        if (uiState is FoodAssistantUiState.Success) {
+            onSuccess()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -906,7 +942,14 @@ fun LogFoodScreenContent(
                         )
                     }
                     IconButton(
-                        onClick = { /* Mic */ },
+                        onClick = {
+                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, "Describe your meal...")
+                            }
+                            speechLauncher.launch(intent)
+                        },
                         modifier = Modifier
                             .background(Color(0xFFE3F2FD), CircleShape)
                             .size(40.dp)
@@ -1000,36 +1043,253 @@ fun LogFoodScreenContent(
             }
         }
 
-        // Show result overlay
-        if (uiState is FoodAssistantUiState.Success) {
-            AlertDialog(
-                onDismissRequest = { onResetState() },
-                confirmButton = {
-                    TextButton(onClick = { onConfirmMeal(uiState.macro) }) {
-                        Text("Add to Log")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { onResetState() }) {
-                        Text("Cancel")
-                    }
-                },
-                title = { Text("Meal Analysis") },
-                text = {
-                    Column {
-                        Text("Name: ${uiState.macro.name}", fontWeight = FontWeight.Bold)
-                        Text("Calories: ${uiState.macro.calories} kcal")
-                        Text("Protein: ${uiState.macro.protein}g")
-                        Text("Carbs: ${uiState.macro.carbs}g")
-                        Text("Fat: ${uiState.macro.fat}g")
-                    }
-                }
-            )
-        }
+        // Show result overlay - REMOVED, replaced by navigation to ReviewMeal
         
         if (uiState is FoodAssistantUiState.Loading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
         }
+    }
+}
+
+@Composable
+fun ReviewMealScreenContent(
+    macro: MacroResponse,
+    onConfirmMeal: (MacroResponse) -> Unit,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFB))
+    ) {
+        // Custom Top Bar for Review Screen
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF006D37))
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "VitalityTrack",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color(0xFF006D37),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.LightGray)
+            ) {
+                // Image placeholder
+                Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.padding(8.dp))
+            }
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Text(
+                    "Review Meal",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "\"${macro.originalInput}\"",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Gray,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Card(
+                        modifier = Modifier.weight(1.2f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("TOTAL CALORIES", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                            Text(
+                                macro.totalCalories.toString(),
+                                style = MaterialTheme.typography.displayMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF006D37)
+                            )
+                            Text("kcal", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        }
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        MacroSummaryBadge("Protein", "${macro.totalProtein}g", Color(0xFFE8F5E9), Color(0xFF2E7D32))
+                        MacroSummaryBadge("Carbs", "${macro.totalCarbs}g", Color(0xFFE3F2FD), Color(0xFF1976D2))
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    "Detected Items",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            items(macro.items) { item ->
+                DetectedItemCard(item)
+            }
+
+            item {
+                OutlinedButton(
+                    onClick = { },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Add another item")
+                }
+            }
+
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color(0xFFE3F2FD).copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Lightbulb, contentDescription = null, tint = Color(0xFF1976D2))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            "Did you add any butter or oil to your toast or eggs? Tapping an item lets you add condiments.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF1976D2)
+                        )
+                    }
+                }
+            }
+            
+            item { Spacer(modifier = Modifier.height(80.dp)) }
+        }
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            tonalElevation = 8.dp,
+            color = Color.White
+        ) {
+            Button(
+                onClick = { onConfirmMeal(macro) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006D37)),
+                shape = RoundedCornerShape(28.dp)
+            ) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Log Meal", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun MacroSummaryBadge(label: String, value: String, bgColor: Color, textColor: Color) {
+    Surface(
+        color = bgColor,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = textColor)
+            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = textColor)
+        }
+    }
+}
+
+@Composable
+fun DetectedItemCard(item: FoodItemAnalysis) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(item.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(item.description, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                }
+                IconButton(onClick = { }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray)
+                }
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF2F4F5))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("CAL", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(item.calories.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFF446180))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    MacroMiniInfo("P", "${item.protein}g")
+                    MacroMiniInfo("C", "${item.carbs}g")
+                    MacroMiniInfo("F", "${item.fat}g")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MacroMiniInfo(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -1371,14 +1631,11 @@ fun DashboardScreenPreview() {
 @Composable
 fun LogFoodScreenPreview() {
     MacroTrackerTheme {
-        // We can't easily preview the LogFood screen with MainScreen because it resets to Dashboard.
-        // But we can preview LogFoodScreenContent directly.
         LogFoodScreenContent(
             uiState = FoodAssistantUiState.Idle,
             recentMeals = listOf("Oatmeal", "Greek Yogurt"),
             onAnalyzeMeal = {},
-            onConfirmMeal = {},
-            onResetState = {}
+            onSuccess = {}
         )
     }
 }
