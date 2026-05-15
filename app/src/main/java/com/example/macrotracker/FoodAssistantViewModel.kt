@@ -11,6 +11,7 @@ import com.example.macrotracker.data.FoodDatabase
 import com.example.macrotracker.data.FoodEntity
 import com.example.macrotracker.data.FoodRepository
 import com.google.ai.client.generativeai.GenerativeModel
+import com.example.macrotracker.BuildConfig
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -56,14 +57,19 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
 
     // Note: In a real production app, never hardcode API keys.
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
-        apiKey = "AIza..." // Placeholder
+        modelName = "gemini-3-flash-preview",
+        apiKey = BuildConfig.GEMINI_API_KEY
     )
 
     var uiState by mutableStateOf<FoodAssistantUiState>(FoodAssistantUiState.Idle)
         private set
     
     val recentMeals = mutableStateListOf("Oatmeal", "Greek Yogurt")
+
+    private val json = Json { 
+        ignoreUnknownKeys = true 
+        coerceInputValues = true
+    }
 
     fun analyzeMeal(input: String) {
         if (input.isBlank()) return
@@ -72,46 +78,50 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch {
             try {
                 val prompt = """
+                    You are a professional nutritionist assistant. 
                     Analyze the following meal description and provide the nutritional information in JSON format.
-                    The JSON should match this structure:
+                    
+                    Rules:
+                    1. Breakdown the meal into individual items.
+                    2. Estimate calories, protein, carbs, and fat for each item.
+                    3. Calculate the total values for the entire meal.
+                    4. 'description' should be a very short detail about the preparation (e.g., 'Large', '30g slice', 'Boiled').
+                    
+                    JSON Structure:
                     {
-                      "originalInput": "the input text",
+                      "originalInput": "$input",
                       "items": [
                         {
-                          "name": "item name",
-                          "description": "short description (e.g. boiled or poached)",
-                          "calories": 100,
-                          "protein": 10,
-                          "carbs": 5,
-                          "fat": 2
+                          "name": "string",
+                          "description": "string",
+                          "calories": integer,
+                          "protein": integer,
+                          "carbs": integer,
+                          "fat": integer
                         }
                       ],
-                      "totalCalories": 100,
-                      "totalProtein": 10,
-                      "totalCarbs": 5,
-                      "totalFat": 2
+                      "totalCalories": integer,
+                      "totalProtein": integer,
+                      "totalCarbs": integer,
+                      "totalFat": integer
                     }
-                    Meal description: $input
-                    Only return the JSON.
+                    
+                    Only return the JSON object, no other text or markdown formatting.
                 """.trimIndent()
 
                 val response = generativeModel.generateContent(prompt)
                 val responseText = response.text ?: throw Exception("Empty response")
                 
-                // Extract JSON if there's markdown
-                val jsonText = if (responseText.contains("```json")) {
-                    responseText.substringAfter("```json").substringBefore("```").trim()
-                } else if (responseText.contains("```")) {
-                    responseText.substringAfter("```").substringBeforeLast("```").trim()
-                } else {
-                    responseText.trim()
-                }
+                // Extract JSON if there's markdown or other text
+                val jsonRegex = Regex("""\{.*\}""", RegexOption.DOT_MATCHES_ALL)
+                val match = jsonRegex.find(responseText)
+                val jsonText = match?.value ?: responseText.trim()
 
-                val macroResponse = Json.decodeFromString<MacroResponse>(jsonText)
+                val macroResponse = json.decodeFromString<MacroResponse>(jsonText)
                 
                 uiState = FoodAssistantUiState.Success(macroResponse)
             } catch (e: Exception) {
-                uiState = FoodAssistantUiState.Error(e.message ?: "Unknown error")
+                uiState = FoodAssistantUiState.Error(e.message ?: "Failed to analyze meal")
             }
         }
     }

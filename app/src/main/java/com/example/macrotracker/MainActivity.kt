@@ -170,7 +170,8 @@ fun MainScreenContent(
                     onAnalyzeMeal = onAnalyzeMeal,
                     onSuccess = {
                         navController.navigate(Screen.ReviewMeal.route)
-                    }
+                    },
+                    onResetState = onResetState
                 )
             }
             composable(Screen.ReviewMeal.route) {
@@ -874,7 +875,8 @@ fun LogFoodScreenContent(
     uiState: FoodAssistantUiState,
     recentMeals: List<String>,
     onAnalyzeMeal: (String) -> Unit,
-    onSuccess: () -> Unit
+    onSuccess: () -> Unit,
+    onResetState: () -> Unit
 ) {
     var mealInput by remember { mutableStateOf("") }
 
@@ -1046,7 +1048,39 @@ fun LogFoodScreenContent(
         // Show result overlay - REMOVED, replaced by navigation to ReviewMeal
         
         if (uiState is FoodAssistantUiState.Loading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF006D37))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Analyzing with AI...", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        if (uiState is FoodAssistantUiState.Error) {
+            AlertDialog(
+                onDismissRequest = onResetState,
+                title = { Text("Analysis Failed") },
+                text = { Text(uiState.message) },
+                confirmButton = {
+                    TextButton(onClick = onResetState) {
+                        Text("Retry")
+                    }
+                }
+            )
         }
     }
 }
@@ -1635,7 +1669,8 @@ fun LogFoodScreenPreview() {
             uiState = FoodAssistantUiState.Idle,
             recentMeals = listOf("Oatmeal", "Greek Yogurt"),
             onAnalyzeMeal = {},
-            onSuccess = {}
+            onSuccess = {},
+            onResetState = {}
         )
     }
 }
