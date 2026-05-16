@@ -42,7 +42,8 @@ data class MacroResponse(
     val totalCalories: Int,
     val totalProtein: Int,
     val totalCarbs: Int,
-    val totalFat: Int
+    val totalFat: Int,
+    var manualMealType: String? = null
 )
 
 class FoodAssistantViewModel(application: Application) : AndroidViewModel(application) {
@@ -114,6 +115,43 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             prefs.edit().putString("activity_level", value).apply()
         }
 
+    private var _dailyCalorieGoal by mutableStateOf(prefs.getInt("daily_calorie_goal", 2000))
+    var dailyCalorieGoal: Int
+        get() = _dailyCalorieGoal
+        set(value) {
+            _dailyCalorieGoal = value
+            prefs.edit().putInt("daily_calorie_goal", value).apply()
+        }
+
+    // Dynamic Macro Calculations
+    val proteinGoal: Int
+        get() {
+            val weightKg = weight.toDoubleOrNull() ?: 70.0
+            val proteinPerKg = when (activityLevel) {
+                "Sedentary" -> 1.2
+                "Lightly active" -> 1.5
+                "Moderately active" -> 1.8
+                "Very active" -> 2.2
+                else -> 1.5
+            }
+            return (weightKg * proteinPerKg).toInt()
+        }
+
+    val fatGoal: Int
+        get() {
+            // Usually 25-30% of calories
+            return (dailyCalorieGoal * 0.25 / 9).toInt()
+        }
+
+    val carbsGoal: Int
+        get() {
+            // Remaining calories
+            val proteinCalories = proteinGoal * 4
+            val fatCalories = fatGoal * 9
+            val carbCalories = dailyCalorieGoal - proteinCalories - fatCalories
+            return (carbCalories / 4).coerceAtLeast(0)
+        }
+
     private val json = Json { 
         ignoreUnknownKeys = true 
         coerceInputValues = true
@@ -181,13 +219,15 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             val now = Calendar.getInstance()
             val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
             
-            // Determine meal type based on hour
-            val hour = now.get(Calendar.HOUR_OF_DAY)
-            val mealType = when {
-                hour < 11 -> "Breakfast"
-                hour < 15 -> "Lunch"
-                hour < 18 -> "Afternoon Snack"
-                else -> "Dinner"
+            // Use manual meal type if provided, otherwise determine based on hour
+            val mealType = macro.manualMealType ?: run {
+                val hour = now.get(Calendar.HOUR_OF_DAY)
+                when {
+                    hour < 11 -> "Breakfast"
+                    hour < 15 -> "Lunch"
+                    hour < 18 -> "Afternoon Snack"
+                    else -> "Dinner"
+                }
             }
 
             macro.items.forEach { item ->

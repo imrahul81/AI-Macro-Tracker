@@ -166,7 +166,7 @@ fun MainScreenContent(
                 .padding(innerPadding)
         ) {
             composable(Screen.Dashboard.route) {
-                MainDashboardContent(loggedFoods)
+                MainDashboardContent(viewModel, loggedFoods)
             }
             composable(Screen.LogFood.route) {
                 LogFoodScreenContent(
@@ -207,17 +207,17 @@ fun MainScreenContent(
 }
 
 @Composable
-fun MainDashboardContent(foods: List<FoodEntity>) {
+fun MainDashboardContent(viewModel: FoodAssistantViewModel, foods: List<FoodEntity>) {
     val totalCalories = foods.sumOf { it.calories }
     val totalProtein = foods.sumOf { it.protein }
     val totalCarbs = foods.sumOf { it.carbs }
     val totalFat = foods.sumOf { it.fat }
 
-    // Hardcoded goals for now
-    val calorieGoal = 2000
-    val proteinGoal = 150
-    val carbsGoal = 250
-    val fatGoal = 70
+    // Use dynamic goals from ViewModel
+    val calorieGoal = viewModel.dailyCalorieGoal
+    val proteinGoal = viewModel.proteinGoal
+    val carbsGoal = viewModel.carbsGoal
+    val fatGoal = viewModel.fatGoal
 
     LazyColumn(
         modifier = Modifier
@@ -663,7 +663,13 @@ fun ProfileScreenContent(viewModel: FoodAssistantViewModel) {
             )
         }
         item {
-            NutritionalGoalsSection()
+            NutritionalGoalsSection(
+                calorieGoal = viewModel.dailyCalorieGoal,
+                onCalorieGoalChange = { viewModel.dailyCalorieGoal = it },
+                proteinGoal = viewModel.proteinGoal,
+                carbsGoal = viewModel.carbsGoal,
+                fatGoal = viewModel.fatGoal
+            )
         }
         item {
             AccountSection()
@@ -936,7 +942,16 @@ fun EditableInfoItem(
 }
 
 @Composable
-fun NutritionalGoalsSection() {
+fun NutritionalGoalsSection(
+    calorieGoal: Int,
+    onCalorieGoalChange: (Int) -> Unit,
+    proteinGoal: Int,
+    carbsGoal: Int,
+    fatGoal: Int
+) {
+    var isEditing by remember { mutableStateOf(false) }
+    var tempCalorieInput by remember(calorieGoal) { mutableStateOf(calorieGoal.toString()) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -950,8 +965,13 @@ fun NutritionalGoalsSection() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Nutritional Goals", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.Tune, contentDescription = "Edit Goals", tint = Color(0xFF006D37))
+                TextButton(onClick = { 
+                    if (isEditing) {
+                        onCalorieGoalChange(tempCalorieInput.toIntOrNull() ?: calorieGoal)
+                    }
+                    isEditing = !isEditing 
+                }) {
+                    Text(if (isEditing) "Save" else "Edit", color = Color(0xFF006D37), fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -970,14 +990,41 @@ fun NutritionalGoalsSection() {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Daily Calories", style = MaterialTheme.typography.bodyLarge)
                     }
-                    Text("2,850 kcal", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFF446180))
+                    if (isEditing) {
+                        TextField(
+                            value = tempCalorieInput,
+                            onValueChange = { tempCalorieInput = it },
+                            modifier = Modifier.width(100.dp),
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color(0xFF006D37)
+                            ),
+                            textStyle = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF446180),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.End
+                            ),
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                            )
+                        )
+                    } else {
+                        Text(
+                            String.format("%, d kcal", calorieGoal),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF446180)
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MacroGoalBadge("Protein", "180g", Color(0xFFE3F2FD), Color(0xFF1976D2), modifier = Modifier.weight(1f))
-                MacroGoalBadge("Carbs", "320g", Color(0xFFE8F5E9), Color(0xFF2E7D32), modifier = Modifier.weight(1f))
-                MacroGoalBadge("Fats", "75g", Color(0xFFF8FAFB), Color(0xFF446180), modifier = Modifier.weight(1f))
+                MacroGoalBadge("Protein", "${proteinGoal}g", Color(0xFFE3F2FD), Color(0xFF1976D2), modifier = Modifier.weight(1f))
+                MacroGoalBadge("Carbs", "${carbsGoal}g", Color(0xFFE8F5E9), Color(0xFF2E7D32), modifier = Modifier.weight(1f))
+                MacroGoalBadge("Fats", "${fatGoal}g", Color(0xFFF8FAFB), Color(0xFF446180), modifier = Modifier.weight(1f))
             }
         }
     }
@@ -1269,6 +1316,9 @@ fun ReviewMealScreenContent(
     onConfirmMeal: (MacroResponse) -> Unit,
     onBack: () -> Unit
 ) {
+    var selectedMealType by remember { mutableStateOf<String?>(null) }
+    val mealTypes = listOf("Breakfast", "Lunch", "Afternoon Snack", "Dinner")
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1371,6 +1421,44 @@ fun ReviewMealScreenContent(
                 )
             }
 
+            item {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        "Tag this meal (Optional)",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        mealTypes.forEach { type ->
+                            val isSelected = selectedMealType == type
+                            Surface(
+                                onClick = { selectedMealType = if (isSelected) null else type },
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isSelected) Color(0xFF006D37) else Color.White,
+                                border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray),
+                                modifier = Modifier.height(40.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(horizontal = 12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = type,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (isSelected) Color.White else Color.Gray,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             items(macro.items) { item ->
                 DetectedItemCard(item)
             }
@@ -1421,7 +1509,10 @@ fun ReviewMealScreenContent(
             color = Color.White
         ) {
             Button(
-                onClick = { onConfirmMeal(macro) },
+                onClick = { 
+                    macro.manualMealType = selectedMealType
+                    onConfirmMeal(macro) 
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
