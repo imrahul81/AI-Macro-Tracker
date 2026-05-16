@@ -43,7 +43,8 @@ data class MacroResponse(
     val totalProtein: Int,
     val totalCarbs: Int,
     val totalFat: Int,
-    var manualMealType: String? = null
+    var manualMealType: String? = null,
+    val detectedMealType: String? = null
 )
 
 class FoodAssistantViewModel(application: Application) : AndroidViewModel(application) {
@@ -173,10 +174,12 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
                     3. Calculate the total values for the entire meal.
                     4. 'description' should be a very short detail about the preparation (e.g., 'Large', '30g slice', 'Boiled').
                     5. Provide a realistic image URL for each food item from a public source like Unsplash (e.g., https://images.unsplash.com/photo-...) or similar. Use high quality food images.
+                    6. Detect if the user explicitly mentioned a meal type (Breakfast, Lunch, Afternoon Snack, Dinner). If found, put it in 'detectedMealType'.
                     
                     JSON Structure:
                     {
                       "originalInput": "$input",
+                      "detectedMealType": "string or null",
                       "items": [
                         {
                           "name": "string",
