@@ -199,7 +199,7 @@ fun MainScreenContent(
                 }
             }
             composable(Screen.History.route) {
-                HistoryScreenContent(historyFoods)
+                HistoryScreenContent(loggedFoods)
             }
             composable(Screen.Profile.route) {
                 ProfileScreenContent(viewModel)
@@ -328,6 +328,7 @@ fun MainDashboardContent(viewModel: FoodAssistantViewModel, foods: List<FoodEnti
 @Composable
 fun HistoryScreenContent(foods: List<FoodEntity>) {
     val groupedFoods = foods.groupBy { it.mealType }
+    val mealTypes = listOf("Breakfast", "Lunch", "Afternoon Snack", "Dinner")
 
     LazyColumn(
         modifier = Modifier
@@ -362,59 +363,45 @@ fun HistoryScreenContent(foods: List<FoodEntity>) {
         }
 
         item {
-            HistorySummaryCard()
+            HistorySummaryCard(foods)
         }
 
         item { Spacer(modifier = Modifier.height(8.dp)) }
 
         // Timeline items
-        item {
-            TimelineItem(
-                mealType = "Breakfast",
-                time = "08:15 AM",
-                calories = 420,
-                foods = groupedFoods["Breakfast"] ?: emptyList(),
-                icon = Icons.Default.Coffee,
-                iconColor = Color(0xFF2ECC71),
-                isFirst = true
-            )
-        }
-        item {
-            TimelineItem(
-                mealType = "Lunch",
-                time = "12:45 PM",
-                calories = 680,
-                foods = groupedFoods["Lunch"] ?: emptyList(),
-                icon = Icons.Default.Restaurant,
-                iconColor = Color.LightGray
-            )
-        }
-        item {
-            TimelineItem(
-                mealType = "Afternoon Snack",
-                time = "03:30 PM",
-                calories = 150,
-                foods = groupedFoods["Afternoon Snack"] ?: emptyList(),
-                icon = Icons.Default.Fastfood,
-                iconColor = Color.LightGray
-            )
-        }
-        item {
-            TimelineItem(
-                mealType = "Dinner",
-                time = "07:00 PM",
-                calories = 308,
-                foods = groupedFoods["Dinner"] ?: emptyList(),
-                icon = Icons.Default.Dining,
-                iconColor = Color.LightGray,
-                isLast = true
-            )
+        mealTypes.forEachIndexed { index, mealType ->
+            item {
+                val mealFoods = groupedFoods[mealType] ?: emptyList()
+                val totalCalories = mealFoods.sumOf { it.calories }
+                val icon = when (mealType) {
+                    "Breakfast" -> Icons.Default.Coffee
+                    "Lunch" -> Icons.Default.Restaurant
+                    "Afternoon Snack" -> Icons.Default.Fastfood
+                    else -> Icons.Default.Dining
+                }
+                
+                TimelineItem(
+                    mealType = mealType,
+                    time = if (mealFoods.isNotEmpty()) mealFoods.first().time else "--:--",
+                    calories = totalCalories,
+                    foods = mealFoods,
+                    icon = icon,
+                    iconColor = if (mealFoods.isNotEmpty()) Color(0xFF2ECC71) else Color.LightGray,
+                    isFirst = index == 0,
+                    isLast = index == mealTypes.size - 1
+                )
+            }
         }
     }
 }
 
 @Composable
-fun HistorySummaryCard() {
+fun HistorySummaryCard(foods: List<FoodEntity>) {
+    val consumed = foods.sumOf { it.calories }
+    val goal = 2000 // In a real app, this should come from ViewModel/Settings
+    val left = (goal - consumed).coerceAtLeast(0)
+    val progress = (consumed.toFloat() / goal).coerceIn(0f, 1f)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -428,7 +415,7 @@ fun HistorySummaryCard() {
         ) {
             Box(contentAlignment = Alignment.Center) {
                 MacroRing(
-                    progress = 0.3f,
+                    progress = progress,
                     color = Color(0xFF006D37),
                     size = 100.dp,
                     strokeWidth = 10.dp,
@@ -436,7 +423,7 @@ fun HistorySummaryCard() {
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("LEFT", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    Text("642", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(left.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -447,7 +434,7 @@ fun HistorySummaryCard() {
                 Text(
                     buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp)) {
-                            append("1,558")
+                            append(String.format("%, d", consumed))
                         }
                         withStyle(SpanStyle(fontSize = 12.sp, color = Color.Gray)) {
                             append(" kcal")
@@ -461,7 +448,7 @@ fun HistorySummaryCard() {
                 Text(
                     buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp)) {
-                            append("2,200")
+                            append(String.format("%, d", goal))
                         }
                         withStyle(SpanStyle(fontSize = 12.sp, color = Color.Gray)) {
                             append(" kcal")
@@ -484,6 +471,8 @@ fun TimelineItem(
     isFirst: Boolean = false,
     isLast: Boolean = false
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
+
     Row(modifier = Modifier.fillMaxWidth()) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -522,7 +511,8 @@ fun TimelineItem(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                onClick = { if (foods.isNotEmpty()) isExpanded = !isExpanded }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -546,7 +536,7 @@ fun TimelineItem(
                         )
                     }
 
-                    if (foods.isNotEmpty()) {
+                    if (foods.isNotEmpty() && isExpanded) {
                         Spacer(modifier = Modifier.height(16.dp))
                         foods.forEach { food ->
                             Row(
@@ -581,10 +571,10 @@ fun TimelineItem(
                             MacroBadge("Carbs", "${totalCarbs}g", Color(0xFFE8F5E9), Color(0xFF2E7D32))
                             MacroBadge("Fats", "${totalFat}g", Color(0xFFFFF3E0), Color(0xFFE65100))
                         }
-                    } else {
+                    } else if (foods.isNotEmpty()) {
                          Icon(
                             Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
+                            contentDescription = "Expand",
                             tint = Color.Gray,
                             modifier = Modifier.align(Alignment.End)
                         )
