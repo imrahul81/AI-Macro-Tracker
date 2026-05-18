@@ -61,8 +61,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MacroTrackerTheme {
-                MainScreen()
+            val viewModel: FoodAssistantViewModel = viewModel()
+            MacroTrackerTheme(darkTheme = viewModel.isDarkMode) {
+                MainScreen(viewModel)
             }
         }
     }
@@ -96,6 +97,9 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         weight = viewModel.weight,
         age = viewModel.age,
         activityLevel = viewModel.activityLevel,
+        isDarkMode = viewModel.isDarkMode,
+        apiKey = viewModel.apiKey,
+        selectedModel = viewModel.selectedModel,
         onNameChange = { viewModel.name = it },
         onProfileImageChange = { viewModel.profileImageUri = it },
         onHeightChange = { viewModel.height = it },
@@ -103,6 +107,9 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         onAgeChange = { viewModel.age = it },
         onActivityLevelChange = { viewModel.activityLevel = it },
         onCalorieGoalChange = { viewModel.dailyCalorieGoal = it },
+        onDarkModeChange = { viewModel.isDarkMode = it },
+        onApiKeyChange = { viewModel.apiKey = it },
+        onModelChange = { viewModel.selectedModel = it },
         loggedFoods = loggedFoods,
         historyFoods = historyFoods,
         historyDate = historyDate,
@@ -127,6 +134,9 @@ fun MainScreenContent(
     weight: String,
     age: String,
     activityLevel: String,
+    isDarkMode: Boolean,
+    apiKey: String,
+    selectedModel: String,
     onNameChange: (String) -> Unit,
     onProfileImageChange: (Uri) -> Unit,
     onHeightChange: (String) -> Unit,
@@ -134,6 +144,9 @@ fun MainScreenContent(
     onAgeChange: (String) -> Unit,
     onActivityLevelChange: (String) -> Unit,
     onCalorieGoalChange: (Int) -> Unit,
+    onDarkModeChange: (Boolean) -> Unit,
+    onApiKeyChange: (String) -> Unit,
+    onModelChange: (String) -> Unit,
     loggedFoods: List<FoodEntity>,
     historyFoods: List<FoodEntity>,
     historyDate: Long,
@@ -159,7 +172,7 @@ fun MainScreenContent(
         bottomBar = {
             if (!isSettingsScreen) {
                 NavigationBar(
-                    containerColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 8.dp
                 ) {
                     val screens = listOf(
@@ -185,7 +198,9 @@ fun MainScreenContent(
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Color.White,
                                 selectedTextColor = Color(0xFF006D37),
-                                indicatorColor = Color(0xFF2ECC71)
+                                indicatorColor = Color(0xFF2ECC71),
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         )
                     }
@@ -275,6 +290,12 @@ fun MainScreenContent(
             }
             composable(Screen.Settings.route) {
                 SettingsScreenContent(
+                    isDarkMode = isDarkMode,
+                    onDarkModeChange = onDarkModeChange,
+                    apiKey = apiKey,
+                    onApiKeyChange = onApiKeyChange,
+                    selectedModel = selectedModel,
+                    onModelChange = onModelChange,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -298,7 +319,7 @@ fun MainDashboardContent(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFB)),
+            .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -440,7 +461,7 @@ fun HistoryScreenContent(foods: List<FoodEntity>, selectedDate: Long, calorieGoa
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFB))
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -460,10 +481,10 @@ fun HistoryScreenContent(foods: List<FoodEntity>, selectedDate: Long, calorieGoa
                     IconButton(
                         onClick = { showDatePicker = true },
                         modifier = Modifier
-                            .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
                             .size(40.dp)
                     ) {
-                        Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar", tint = Color.Gray)
+                        Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -493,7 +514,7 @@ fun HistoryScreenContent(foods: List<FoodEntity>, selectedDate: Long, calorieGoa
                     calories = totalCalories,
                     foods = mealFoods,
                     icon = icon,
-                    iconColor = if (mealFoods.isNotEmpty()) Color(0xFF2ECC71) else Color.LightGray,
+                    iconColor = if (mealFoods.isNotEmpty()) Color(0xFF2ECC71) else MaterialTheme.colorScheme.surfaceVariant,
                     isFirst = index == 0,
                     isLast = index == mealTypes.size - 1
                 )
@@ -511,7 +532,7 @@ fun HistorySummaryCard(foods: List<FoodEntity>, goal: Int) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -525,7 +546,7 @@ fun HistorySummaryCard(foods: List<FoodEntity>, goal: Int) {
                     color = Color(0xFF006D37),
                     size = 100.dp,
                     strokeWidth = 10.dp,
-                    inactiveColor = Color(0xFFEEEEEE)
+                    inactiveColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("LEFT", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
@@ -589,7 +610,7 @@ fun TimelineItem(
                     modifier = Modifier
                         .width(2.dp)
                         .height(16.dp)
-                        .background(Color.LightGray)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                 )
             }
             Box(
@@ -598,14 +619,14 @@ fun TimelineItem(
                     .background(iconColor, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = if (iconColor == Color.LightGray) Color.Gray else Color.White)
+                Icon(icon, contentDescription = null, tint = if (iconColor == MaterialTheme.colorScheme.surfaceVariant) MaterialTheme.colorScheme.onSurfaceVariant else Color.White)
             }
             if (!isLast) {
                 Box(
                     modifier = Modifier
                         .width(2.dp)
                         .weight(1f)
-                        .background(Color.LightGray)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                 )
             }
         }
@@ -616,7 +637,7 @@ fun TimelineItem(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 onClick = { if (foods.isNotEmpty()) isExpanded = !isExpanded }
             ) {
@@ -749,7 +770,7 @@ fun ProfileScreenContent(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFB))
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -819,12 +840,12 @@ fun ProfileHeader(name: String, imageUri: Uri?, onEditImage: () -> Unit, isEditi
                 modifier = Modifier
                     .size(100.dp)
                     .clip(CircleShape)
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(4.dp)
                     .background(Color(0xFF2ECC71), CircleShape)
                     .padding(2.dp)
                     .clip(CircleShape)
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
                 if (imageUri != null) {
                     AsyncImage(
@@ -916,7 +937,7 @@ fun PersonalInfoSection(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -1000,15 +1021,15 @@ fun ActivityLevelDropdown(
                         .fillMaxWidth(),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF2F4F5),
-                        unfocusedContainerColor = Color(0xFFF2F4F5),
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         focusedIndicatorColor = Color(0xFF006D37)
                     )
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
-                    modifier = Modifier.background(Color.White)
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                 ) {
                     options.forEach { option ->
                         DropdownMenuItem(
@@ -1058,15 +1079,15 @@ fun EditableInfoItem(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFFF2F4F5),
-                    unfocusedContainerColor = Color(0xFFF2F4F5),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedIndicatorColor = Color(0xFF006D37)
                 )
             )
         } else {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFFF2F4F5),
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
@@ -1094,7 +1115,7 @@ fun NutritionalGoalsSection(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -1116,7 +1137,7 @@ fun NutritionalGoalsSection(
             Spacer(modifier = Modifier.height(16.dp))
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFFF2F4F5),
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(
@@ -1191,7 +1212,7 @@ fun AccountSection() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(vertical = 8.dp)) {
@@ -1202,9 +1223,9 @@ fun AccountSection() {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
             AccountItem(label = "Email Address", value = "alex.j@example.com")
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF2F4F5))
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
             AccountItem(label = "Password", value = "••••••••••••")
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF2F4F5))
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1277,7 +1298,7 @@ fun LogFoodScreenContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFB))
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
@@ -1296,7 +1317,7 @@ fun LogFoodScreenContent(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
@@ -1350,9 +1371,9 @@ fun LogFoodScreenContent(
                         .height(140.dp)
                         .clip(RoundedCornerShape(12.dp)),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF2F4F5),
-                        unfocusedContainerColor = Color(0xFFF2F4F5),
-                        disabledContainerColor = Color(0xFFF2F4F5),
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
                     )
@@ -1461,7 +1482,7 @@ fun ReviewMealScreenContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFB))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Custom Top Bar for Review Screen
         Row(
@@ -1488,10 +1509,10 @@ fun ReviewMealScreenContent(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color.LightGray)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 // Image placeholder
-                Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.padding(8.dp))
+                Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(8.dp))
             }
         }
 
@@ -1518,7 +1539,7 @@ fun ReviewMealScreenContent(
                     Card(
                         modifier = Modifier.weight(1.2f),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(
@@ -1574,7 +1595,7 @@ fun ReviewMealScreenContent(
                             Surface(
                                 onClick = { selectedMealType = if (isSelected) null else type },
                                 shape = RoundedCornerShape(20.dp),
-                                color = if (isSelected) Color(0xFF006D37) else Color.White,
+                                color = if (isSelected) Color(0xFF006D37) else MaterialTheme.colorScheme.surface,
                                 border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray),
                                 modifier = Modifier.height(40.dp)
                             ) {
@@ -1618,19 +1639,19 @@ fun ReviewMealScreenContent(
             item {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = Color(0xFFE3F2FD).copy(alpha = 0.5f),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Lightbulb, contentDescription = null, tint = Color(0xFF1976D2))
+                        Icon(Icons.Default.Lightbulb, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             "Did you add any butter or oil to your toast or eggs? Tapping an item lets you add condiments.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF1976D2)
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     }
                 }
@@ -1642,7 +1663,7 @@ fun ReviewMealScreenContent(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             tonalElevation = 8.dp,
-            color = Color.White
+            color = MaterialTheme.colorScheme.surface
         ) {
             Button(
                 onClick = { 
@@ -1687,7 +1708,7 @@ fun DetectedItemCard(item: FoodItemAnalysis) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -1703,7 +1724,7 @@ fun DetectedItemCard(item: FoodItemAnalysis) {
                         modifier = Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFF2F4F5)),
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -1716,7 +1737,7 @@ fun DetectedItemCard(item: FoodItemAnalysis) {
                     Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray)
                 }
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFFF2F4F5))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1783,7 +1804,7 @@ fun RecentMealsCard(meals: List<String>, modifier: Modifier = Modifier) {
             meals.forEach { meal ->
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surface,
                     modifier = Modifier.padding(bottom = 4.dp)
                 ) {
                     Text(
@@ -1799,19 +1820,22 @@ fun RecentMealsCard(meals: List<String>, modifier: Modifier = Modifier) {
 
 @Composable
 fun SettingsScreenContent(
+    isDarkMode: Boolean,
+    onDarkModeChange: (Boolean) -> Unit,
+    apiKey: String,
+    onApiKeyChange: (String) -> Unit,
+    selectedModel: String,
+    onModelChange: (String) -> Unit,
     onBack: () -> Unit
 ) {
-    var isDarkMode by remember { mutableStateOf(false) }
     var showModelDialog by remember { mutableStateOf(false) }
-    var selectedModel by remember { mutableStateOf("gemini-1.5-flash") }
-    var apiKey by remember { mutableStateOf("") }
     var driveBackupEnabled by remember { mutableStateOf(false) }
     var remindersEnabled by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFB))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Custom Top Bar for Settings
         Row(
@@ -1845,7 +1869,7 @@ fun SettingsScreenContent(
                         label = "Dark Mode",
                         icon = Icons.Default.DarkMode,
                         checked = isDarkMode,
-                        onCheckedChange = { isDarkMode = it }
+                        onCheckedChange = onDarkModeChange
                     )
                 }
             }
@@ -1858,11 +1882,11 @@ fun SettingsScreenContent(
                         icon = Icons.Default.SmartToy,
                         onClick = { showModelDialog = true }
                     )
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF2F4F5))
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
                     SettingsInputItem(
                         label = "API Key",
                         value = apiKey,
-                        onValueChange = { apiKey = it },
+                        onValueChange = onApiKeyChange,
                         icon = Icons.Default.VpnKey,
                         placeholder = "Enter Gemini API Key"
                     )
@@ -1908,7 +1932,7 @@ fun SettingsScreenContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    selectedModel = model
+                                    onModelChange(model)
                                     showModelDialog = false
                                 }
                                 .padding(vertical = 12.dp),
@@ -1943,7 +1967,7 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(content = content)
@@ -2033,8 +2057,8 @@ fun SettingsInputItem(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFF2F4F5),
-                unfocusedContainerColor = Color(0xFFF2F4F5),
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 focusedIndicatorColor = Color(0xFF006D37)
             ),
             shape = RoundedCornerShape(12.dp)
@@ -2057,7 +2081,7 @@ fun VitalityTopBar(profileImageUri: Uri?, onSettingsClick: () -> Unit) {
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color.LightGray)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (profileImageUri != null) {
                     AsyncImage(
@@ -2071,7 +2095,7 @@ fun VitalityTopBar(profileImageUri: Uri?, onSettingsClick: () -> Unit) {
                         Icons.Default.Person,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize().padding(8.dp),
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -2104,7 +2128,7 @@ fun CalorieOverview(consumed: Int, goal: Int) {
                 color = Color(0xFF2ECC71),
                 size = 216.dp,
                 strokeWidth = 24.dp,
-                inactiveColor = Color(0xFFEEEEEE)
+                inactiveColor = MaterialTheme.colorScheme.surfaceVariant
             )
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
@@ -2142,7 +2166,7 @@ fun MacroCard(label: String, value: String, progress: Float, color: Color, modif
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -2156,7 +2180,7 @@ fun MacroCard(label: String, value: String, progress: Float, color: Color, modif
                 color = color,
                 size = 60.dp,
                 strokeWidth = 8.dp,
-                inactiveColor = Color(0xFFEEEEEE)
+                inactiveColor = MaterialTheme.colorScheme.surfaceVariant
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray, fontWeight = FontWeight.Medium)
@@ -2196,7 +2220,7 @@ fun FoodListItemEntity(foodEntity: FoodEntity) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -2211,7 +2235,7 @@ fun FoodListItemEntity(foodEntity: FoodEntity) {
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF2F4F5)),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
@@ -2249,7 +2273,7 @@ fun FoodListItem(foodItem: FoodItem) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -2264,7 +2288,7 @@ fun FoodListItem(foodItem: FoodItem) {
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFEEEEEE)),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
@@ -2331,7 +2355,7 @@ val sampleFoodEntities = listOf(
 @Preview(showBackground = true)
 @Composable
 fun DashboardScreenPreview() {
-    MacroTrackerTheme {
+    MacroTrackerTheme(darkTheme = false) {
         MainScreenContent(
             profileImageUri = null,
             dailyCalorieGoal = 2000,
@@ -2343,6 +2367,9 @@ fun DashboardScreenPreview() {
             weight = "78.5",
             age = "29",
             activityLevel = "Very Active",
+            isDarkMode = false,
+            apiKey = "",
+            selectedModel = "gemini-1.5-flash",
             onNameChange = {},
             onProfileImageChange = {},
             onHeightChange = {},
@@ -2350,6 +2377,9 @@ fun DashboardScreenPreview() {
             onAgeChange = {},
             onActivityLevelChange = {},
             onCalorieGoalChange = {},
+            onDarkModeChange = {},
+            onApiKeyChange = {},
+            onModelChange = {},
             loggedFoods = sampleFoodEntities,
             historyFoods = sampleFoodEntities,
             historyDate = System.currentTimeMillis(),
@@ -2393,7 +2423,7 @@ fun HistoryScreenPreview() {
 @Preview(showBackground = true)
 @Composable
 fun ProfileScreenPreview() {
-    MacroTrackerTheme {
+    MacroTrackerTheme(darkTheme = false) {
         ProfileScreenContent(
             name = "Alex Johnson",
             profileImageUri = null,

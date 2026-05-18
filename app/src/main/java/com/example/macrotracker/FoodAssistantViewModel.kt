@@ -78,10 +78,17 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
     }
 
     // Note: In a real production app, never hardcode API keys.
-    private val generativeModel = GenerativeModel(
-        modelName = "gemini-3-flash-preview",
-        apiKey = BuildConfig.GEMINI_API_KEY
+    private var generativeModel = GenerativeModel(
+        modelName = prefs.getString("selected_model", "gemini-1.5-flash") ?: "gemini-1.5-flash",
+        apiKey = prefs.getString("api_key", BuildConfig.GEMINI_API_KEY) ?: BuildConfig.GEMINI_API_KEY
     )
+
+    private fun updateGenerativeModel() {
+        generativeModel = GenerativeModel(
+            modelName = selectedModel,
+            apiKey = apiKey
+        )
+    }
 
     var uiState by mutableStateOf<FoodAssistantUiState>(FoodAssistantUiState.Idle)
         private set
@@ -137,6 +144,32 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
         set(value) {
             _activityLevel = value
             prefs.edit().putString("activity_level", value).apply()
+        }
+
+    private var _isDarkMode by mutableStateOf(prefs.getBoolean("is_dark_mode", false))
+    var isDarkMode: Boolean
+        get() = _isDarkMode
+        set(value) {
+            _isDarkMode = value
+            prefs.edit().putBoolean("is_dark_mode", value).apply()
+        }
+
+    private var _apiKey by mutableStateOf(prefs.getString("api_key", BuildConfig.GEMINI_API_KEY) ?: BuildConfig.GEMINI_API_KEY)
+    var apiKey: String
+        get() = _apiKey
+        set(value) {
+            _apiKey = value
+            prefs.edit().putString("api_key", value).apply()
+            updateGenerativeModel()
+        }
+
+    private var _selectedModel by mutableStateOf(prefs.getString("selected_model", "gemini-1.5-flash") ?: "gemini-1.5-flash")
+    var selectedModel: String
+        get() = _selectedModel
+        set(value) {
+            _selectedModel = value
+            prefs.edit().putString("selected_model", value).apply()
+            updateGenerativeModel()
         }
 
     private var _dailyCalorieGoal by mutableStateOf(prefs.getInt("daily_calorie_goal", 2000))
