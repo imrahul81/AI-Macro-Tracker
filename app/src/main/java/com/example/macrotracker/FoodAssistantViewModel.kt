@@ -15,8 +15,11 @@ import com.example.macrotracker.data.FoodEntity
 import com.example.macrotracker.data.FoodRepository
 import com.google.ai.client.generativeai.GenerativeModel
 import com.example.macrotracker.BuildConfig
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -59,8 +62,20 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
     val loggedFoods: StateFlow<List<FoodEntity>> = repository.getFoodsForToday()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val historyFoods: StateFlow<List<FoodEntity>> = repository.allFoods
+    // History for a specific selected date
+    private val _selectedHistoryDate = MutableStateFlow(System.currentTimeMillis())
+    val selectedHistoryDate: StateFlow<Long> = _selectedHistoryDate
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val historyFoods: StateFlow<List<FoodEntity>> = _selectedHistoryDate
+        .flatMapLatest { timestamp ->
+            repository.getFoodsForDate(timestamp)
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setSelectedHistoryDate(timestamp: Long) {
+        _selectedHistoryDate.value = timestamp
+    }
 
     // Note: In a real production app, never hardcode API keys.
     private val generativeModel = GenerativeModel(

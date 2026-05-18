@@ -7,7 +7,12 @@ class FoodRepository(private val foodDao: FoodDao) {
     val allFoods: Flow<List<FoodEntity>> = foodDao.getAllFoods()
 
     fun getFoodsForToday(): Flow<List<FoodEntity>> {
+        return getFoodsForDate(System.currentTimeMillis())
+    }
+
+    fun getFoodsForDate(timestamp: Long): Flow<List<FoodEntity>> {
         val calendar = Calendar.getInstance()
+        calendar.timeInMillis = timestamp
         calendar.set(Calendar.HOUR_OF_DAY, 0)
         calendar.set(Calendar.MINUTE, 0)
         calendar.set(Calendar.SECOND, 0)

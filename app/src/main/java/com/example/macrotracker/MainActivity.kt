@@ -51,6 +51,8 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.macrotracker.data.FoodEntity
 import com.example.macrotracker.ui.theme.MacroTrackerTheme
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,6 +78,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
     val loggedFoods by viewModel.loggedFoods.collectAsState()
     val historyFoods by viewModel.historyFoods.collectAsState()
+    val historyDate by viewModel.selectedHistoryDate.collectAsState()
     val uiState = viewModel.uiState
     val recentMeals = viewModel.recentMeals
 
@@ -83,11 +86,13 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         viewModel = viewModel,
         loggedFoods = loggedFoods,
         historyFoods = historyFoods,
+        historyDate = historyDate,
         uiState = uiState,
         recentMeals = recentMeals,
         onAnalyzeMeal = { viewModel.analyzeMeal(it) },
         onConfirmMeal = { viewModel.confirmMeal(it) },
-        onResetState = { viewModel.resetState() }
+        onResetState = { viewModel.resetState() },
+        onDateSelected = { viewModel.setSelectedHistoryDate(it) }
     )
 }
 
@@ -96,11 +101,13 @@ fun MainScreenContent(
     viewModel: FoodAssistantViewModel,
     loggedFoods: List<FoodEntity>,
     historyFoods: List<FoodEntity>,
+    historyDate: Long,
     uiState: FoodAssistantUiState,
     recentMeals: List<String>,
     onAnalyzeMeal: (String) -> Unit,
     onConfirmMeal: (MacroResponse) -> Unit,
-    onResetState: () -> Unit
+    onResetState: () -> Unit,
+    onDateSelected: (Long) -> Unit
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -199,7 +206,7 @@ fun MainScreenContent(
                 }
             }
             composable(Screen.History.route) {
-                HistoryScreenContent(loggedFoods)
+                HistoryScreenContent(historyFoods, historyDate, viewModel.dailyCalorieGoal, onDateSelected)
             }
             composable(Screen.Profile.route) {
                 ProfileScreenContent(viewModel)
@@ -325,10 +332,42 @@ fun MainDashboardContent(viewModel: FoodAssistantViewModel, foods: List<FoodEnti
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryScreenContent(foods: List<FoodEntity>) {
+fun HistoryScreenContent(foods: List<FoodEntity>, selectedDate: Long, calorieGoal: Int, onDateSelected: (Long) -> Unit) {
     val groupedFoods = foods.groupBy { it.mealType }
     val mealTypes = listOf("Breakfast", "Lunch", "Afternoon Snack", "Dinner")
+    
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
+    
+    val dateFormatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    val dateString = if (android.text.format.DateUtils.isToday(selectedDate)) {
+        "Today, ${SimpleDateFormat("MMM dd", Locale.getDefault()).format(selectedDate)}"
+    } else {
+        dateFormatter.format(selectedDate)
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { onDateSelected(it) }
+                    showDatePicker = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -346,12 +385,12 @@ fun HistoryScreenContent(foods: List<FoodEntity>) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "Today, Oct 24",
+                        dateString,
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold
                     )
                     IconButton(
-                        onClick = { },
+                        onClick = { showDatePicker = true },
                         modifier = Modifier
                             .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp))
                             .size(40.dp)
@@ -363,7 +402,7 @@ fun HistoryScreenContent(foods: List<FoodEntity>) {
         }
 
         item {
-            HistorySummaryCard(foods)
+            HistorySummaryCard(foods, calorieGoal)
         }
 
         item { Spacer(modifier = Modifier.height(8.dp)) }
@@ -396,9 +435,8 @@ fun HistoryScreenContent(foods: List<FoodEntity>) {
 }
 
 @Composable
-fun HistorySummaryCard(foods: List<FoodEntity>) {
+fun HistorySummaryCard(foods: List<FoodEntity>, goal: Int) {
     val consumed = foods.sumOf { it.calories }
-    val goal = 2000 // In a real app, this should come from ViewModel/Settings
     val left = (goal - consumed).coerceAtLeast(0)
     val progress = (consumed.toFloat() / goal).coerceIn(0f, 1f)
 
@@ -1967,11 +2005,13 @@ fun DashboardScreenPreview() {
             viewModel = viewModel(),
             loggedFoods = sampleFoodEntities,
             historyFoods = sampleFoodEntities,
+            historyDate = System.currentTimeMillis(),
             uiState = FoodAssistantUiState.Idle,
             recentMeals = listOf("Oatmeal", "Greek Yogurt"),
             onAnalyzeMeal = {},
             onConfirmMeal = {},
-            onResetState = {}
+            onResetState = {},
+            onDateSelected = {}
         )
     }
 }
@@ -1994,7 +2034,12 @@ fun LogFoodScreenPreview() {
 @Composable
 fun HistoryScreenPreview() {
     MacroTrackerTheme {
-        HistoryScreenContent(foods = sampleFoodEntities)
+        HistoryScreenContent(
+            foods = sampleFoodEntities,
+            selectedDate = System.currentTimeMillis(),
+            calorieGoal = 2000,
+            onDateSelected = {}
+        )
     }
 }
 
