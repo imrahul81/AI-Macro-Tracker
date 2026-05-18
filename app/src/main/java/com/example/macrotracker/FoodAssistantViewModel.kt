@@ -147,11 +147,22 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
         }
 
     private var _isDarkMode by mutableStateOf(prefs.getBoolean("is_dark_mode", false))
+    private var _useSystemTheme by mutableStateOf(prefs.getBoolean("use_system_theme", true))
+
+    var useSystemTheme: Boolean
+        get() = _useSystemTheme
+        set(value) {
+            _useSystemTheme = value
+            prefs.edit().putBoolean("use_system_theme", value).apply()
+        }
+
     var isDarkMode: Boolean
         get() = _isDarkMode
         set(value) {
             _isDarkMode = value
             prefs.edit().putBoolean("is_dark_mode", value).apply()
+            // When user manually toggles, we disable "follow system"
+            useSystemTheme = false
         }
 
     private var _apiKey by mutableStateOf(prefs.getString("api_key", BuildConfig.GEMINI_API_KEY) ?: BuildConfig.GEMINI_API_KEY)

@@ -14,6 +14,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -62,7 +63,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val viewModel: FoodAssistantViewModel = viewModel()
-            MacroTrackerTheme(darkTheme = viewModel.isDarkMode) {
+            val systemInDarkTheme = isSystemInDarkTheme()
+            
+            // Determine theme based on user preference or system theme
+            val darkTheme = if (viewModel.useSystemTheme) {
+                systemInDarkTheme
+            } else {
+                viewModel.isDarkMode
+            }
+
+            MacroTrackerTheme(darkTheme = darkTheme) {
                 MainScreen(viewModel)
             }
         }
@@ -85,6 +95,7 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
     val historyDate by viewModel.selectedHistoryDate.collectAsState()
     val uiState = viewModel.uiState
     val recentMeals = viewModel.recentMeals
+    val systemInDarkTheme = isSystemInDarkTheme()
 
     MainScreenContent(
         profileImageUri = viewModel.profileImageUri,
@@ -97,7 +108,8 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         weight = viewModel.weight,
         age = viewModel.age,
         activityLevel = viewModel.activityLevel,
-        isDarkMode = viewModel.isDarkMode,
+        isDarkMode = if (viewModel.useSystemTheme) systemInDarkTheme else viewModel.isDarkMode,
+        useSystemTheme = viewModel.useSystemTheme,
         apiKey = viewModel.apiKey,
         selectedModel = viewModel.selectedModel,
         onNameChange = { viewModel.name = it },
@@ -108,6 +120,7 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         onActivityLevelChange = { viewModel.activityLevel = it },
         onCalorieGoalChange = { viewModel.dailyCalorieGoal = it },
         onDarkModeChange = { viewModel.isDarkMode = it },
+        onUseSystemThemeChange = { viewModel.useSystemTheme = it },
         onApiKeyChange = { viewModel.apiKey = it },
         onModelChange = { viewModel.selectedModel = it },
         loggedFoods = loggedFoods,
@@ -135,6 +148,7 @@ fun MainScreenContent(
     age: String,
     activityLevel: String,
     isDarkMode: Boolean,
+    useSystemTheme: Boolean,
     apiKey: String,
     selectedModel: String,
     onNameChange: (String) -> Unit,
@@ -145,6 +159,7 @@ fun MainScreenContent(
     onActivityLevelChange: (String) -> Unit,
     onCalorieGoalChange: (Int) -> Unit,
     onDarkModeChange: (Boolean) -> Unit,
+    onUseSystemThemeChange: (Boolean) -> Unit,
     onApiKeyChange: (String) -> Unit,
     onModelChange: (String) -> Unit,
     loggedFoods: List<FoodEntity>,
@@ -292,6 +307,8 @@ fun MainScreenContent(
                 SettingsScreenContent(
                     isDarkMode = isDarkMode,
                     onDarkModeChange = onDarkModeChange,
+                    useSystemTheme = useSystemTheme,
+                    onUseSystemThemeChange = onUseSystemThemeChange,
                     apiKey = apiKey,
                     onApiKeyChange = onApiKeyChange,
                     selectedModel = selectedModel,
@@ -364,8 +381,13 @@ fun MainDashboardContent(
             )
         }
         if (foods.isEmpty()) {
-            items(mockFoodItems) { foodItem ->
-                FoodListItem(foodItem)
+            item {
+                Text(
+                    "No meals logged today yet. Tap the + button to start!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
             }
         } else {
             items(foods) { foodEntity ->
@@ -1822,6 +1844,8 @@ fun RecentMealsCard(meals: List<String>, modifier: Modifier = Modifier) {
 fun SettingsScreenContent(
     isDarkMode: Boolean,
     onDarkModeChange: (Boolean) -> Unit,
+    useSystemTheme: Boolean,
+    onUseSystemThemeChange: (Boolean) -> Unit,
     apiKey: String,
     onApiKeyChange: (String) -> Unit,
     selectedModel: String,
@@ -1865,6 +1889,13 @@ fun SettingsScreenContent(
         ) {
             item {
                 SettingsSection(title = "Appearance") {
+                    SettingsToggleItem(
+                        label = "Follow System Theme",
+                        icon = Icons.Default.SettingsSuggest,
+                        checked = useSystemTheme,
+                        onCheckedChange = onUseSystemThemeChange
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
                     SettingsToggleItem(
                         label = "Dark Mode",
                         icon = Icons.Default.DarkMode,
@@ -2368,6 +2399,7 @@ fun DashboardScreenPreview() {
             age = "29",
             activityLevel = "Very Active",
             isDarkMode = false,
+            useSystemTheme = true,
             apiKey = "",
             selectedModel = "gemini-1.5-flash",
             onNameChange = {},
@@ -2378,6 +2410,7 @@ fun DashboardScreenPreview() {
             onActivityLevelChange = {},
             onCalorieGoalChange = {},
             onDarkModeChange = {},
+            onUseSystemThemeChange = {},
             onApiKeyChange = {},
             onModelChange = {},
             loggedFoods = sampleFoodEntities,
