@@ -74,6 +74,14 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
     val recentMeals = mutableStateListOf("Oatmeal", "Greek Yogurt")
 
     // User Profile State with Persistence
+    private var _name by mutableStateOf(prefs.getString("name", "Alex Johnson") ?: "Alex Johnson")
+    var name: String
+        get() = _name
+        set(value) {
+            _name = value
+            prefs.edit().putString("name", value).apply()
+        }
+
     private var _profileImageUri by mutableStateOf<Uri?>(
         prefs.getString("profile_image_uri", null)?.let { Uri.parse(it) }
     )

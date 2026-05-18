@@ -108,7 +108,7 @@ fun MainScreenContent(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        topBar = { VitalityTopBar() },
+        topBar = { VitalityTopBar(viewModel.profileImageUri) },
         bottomBar = {
             NavigationBar(
                 containerColor = Color.White,
@@ -632,7 +632,10 @@ fun ProfileScreenContent(viewModel: FoodAssistantViewModel) {
     ) {
         item {
             ProfileHeader(
+                name = viewModel.name,
                 imageUri = viewModel.profileImageUri,
+                isEditing = isEditing,
+                onNameChange = { viewModel.name = it },
                 onEditImage = { 
                     imagePickerLauncher.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -685,7 +688,7 @@ fun ProfileScreenContent(viewModel: FoodAssistantViewModel) {
 }
 
 @Composable
-fun ProfileHeader(imageUri: android.net.Uri?, onEditImage: () -> Unit) {
+fun ProfileHeader(name: String, imageUri: android.net.Uri?, onEditImage: () -> Unit, isEditing: Boolean, onNameChange: (String) -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(contentAlignment = Alignment.BottomEnd) {
             Box(
@@ -732,11 +735,31 @@ fun ProfileHeader(imageUri: android.net.Uri?, onEditImage: () -> Unit) {
             }
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            "Alex Johnson",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+        
+        if (isEditing) {
+            TextField(
+                value = name,
+                onValueChange = onNameChange,
+                modifier = Modifier.width(200.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                ),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color(0xFF006D37)
+                )
+            )
+        } else {
+            Text(
+                name,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        
         Spacer(modifier = Modifier.height(4.dp))
         Surface(
             color = Color(0xFF2ECC71),
@@ -1331,7 +1354,7 @@ fun ReviewMealScreenContent(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "VitalityTrack",
+                    "Review Meal",
                     style = MaterialTheme.typography.headlineMedium,
                     color = Color(0xFF006D37),
                     fontWeight = FontWeight.Bold
@@ -1355,11 +1378,6 @@ fun ReviewMealScreenContent(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Text(
-                    "Review Meal",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold
-                )
                 Text(
                     "\"${macro.originalInput}\"",
                     style = MaterialTheme.typography.bodyLarge,
@@ -1656,7 +1674,7 @@ fun RecentMealsCard(meals: List<String>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun VitalityTopBar() {
+fun VitalityTopBar(profileImageUri: android.net.Uri?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1672,7 +1690,21 @@ fun VitalityTopBar() {
                     .clip(CircleShape)
                     .background(Color.LightGray)
             ) {
-                // Placeholder for profile image
+                if (profileImageUri != null) {
+                    AsyncImage(
+                        model = profileImageUri,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize().padding(8.dp),
+                        tint = Color.White
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(12.dp))
             Text(
