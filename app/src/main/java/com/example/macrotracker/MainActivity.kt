@@ -183,7 +183,19 @@ fun MainScreenContent(
         modifier = Modifier.fillMaxSize(),
         topBar = { 
             if (!isSettingsScreen) {
-                VitalityTopBar(profileImageUri, onSettingsClick = { navController.navigate(Screen.Settings.route) }) 
+                VitalityTopBar(
+                    profileImageUri = profileImageUri,
+                    onSettingsClick = { navController.navigate(Screen.Settings.route) },
+                    onProfileClick = {
+                        navController.navigate(Screen.Profile.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                ) 
             }
         },
         bottomBar = {
@@ -1867,7 +1879,6 @@ fun SettingsScreenContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -2108,7 +2119,11 @@ fun SettingsInputItem(
 }
 
 @Composable
-fun VitalityTopBar(profileImageUri: Uri?, onSettingsClick: () -> Unit) {
+fun VitalityTopBar(
+    profileImageUri: Uri?,
+    onSettingsClick: () -> Unit,
+    onProfileClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -2117,27 +2132,36 @@ fun VitalityTopBar(profileImageUri: Uri?, onSettingsClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.clickable { onProfileClick() }
+        ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .size(48.dp),
+                contentAlignment = Alignment.Center
             ) {
-                if (profileImageUri != null) {
-                    AsyncImage(
-                        model = profileImageUri,
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize().padding(8.dp),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    if (profileImageUri != null) {
+                        AsyncImage(
+                            model = profileImageUri,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize().padding(8.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))
