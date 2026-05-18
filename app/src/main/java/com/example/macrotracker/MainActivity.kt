@@ -1,6 +1,7 @@
 package com.example.macrotracker
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import androidx.activity.ComponentActivity
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,6 +74,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object History : Screen("history", "History", Icons.Default.History)
     data object Profile : Screen("profile", "Profile", Icons.Default.PersonOutline)
     data object ReviewMeal : Screen("review_meal", "Review Meal", Icons.Default.CheckCircle)
+    data object Settings : Screen("settings", "Settings", Icons.Outlined.Settings)
 }
 
 @Composable
@@ -83,7 +86,23 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
     val recentMeals = viewModel.recentMeals
 
     MainScreenContent(
-        viewModel = viewModel,
+        profileImageUri = viewModel.profileImageUri,
+        dailyCalorieGoal = viewModel.dailyCalorieGoal,
+        proteinGoal = viewModel.proteinGoal,
+        carbsGoal = viewModel.carbsGoal,
+        fatGoal = viewModel.fatGoal,
+        name = viewModel.name,
+        height = viewModel.height,
+        weight = viewModel.weight,
+        age = viewModel.age,
+        activityLevel = viewModel.activityLevel,
+        onNameChange = { viewModel.name = it },
+        onProfileImageChange = { viewModel.profileImageUri = it },
+        onHeightChange = { viewModel.height = it },
+        onWeightChange = { viewModel.weight = it },
+        onAgeChange = { viewModel.age = it },
+        onActivityLevelChange = { viewModel.activityLevel = it },
+        onCalorieGoalChange = { viewModel.dailyCalorieGoal = it },
         loggedFoods = loggedFoods,
         historyFoods = historyFoods,
         historyDate = historyDate,
@@ -98,7 +117,23 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
 
 @Composable
 fun MainScreenContent(
-    viewModel: FoodAssistantViewModel,
+    profileImageUri: Uri?,
+    dailyCalorieGoal: Int,
+    proteinGoal: Int,
+    carbsGoal: Int,
+    fatGoal: Int,
+    name: String,
+    height: String,
+    weight: String,
+    age: String,
+    activityLevel: String,
+    onNameChange: (String) -> Unit,
+    onProfileImageChange: (Uri) -> Unit,
+    onHeightChange: (String) -> Unit,
+    onWeightChange: (String) -> Unit,
+    onAgeChange: (String) -> Unit,
+    onActivityLevelChange: (String) -> Unit,
+    onCalorieGoalChange: (Int) -> Unit,
     loggedFoods: List<FoodEntity>,
     historyFoods: List<FoodEntity>,
     historyDate: Long,
@@ -115,7 +150,7 @@ fun MainScreenContent(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        topBar = { VitalityTopBar(viewModel.profileImageUri) },
+        topBar = { VitalityTopBar(profileImageUri, onSettingsClick = { navController.navigate(Screen.Settings.route) }) },
         bottomBar = {
             NavigationBar(
                 containerColor = Color.White,
@@ -175,7 +210,7 @@ fun MainScreenContent(
                 .padding(innerPadding)
         ) {
             composable(Screen.Dashboard.route) {
-                MainDashboardContent(viewModel, loggedFoods)
+                MainDashboardContent(loggedFoods, dailyCalorieGoal, proteinGoal, carbsGoal, fatGoal)
             }
             composable(Screen.LogFood.route) {
                 LogFoodScreenContent(
@@ -206,27 +241,50 @@ fun MainScreenContent(
                 }
             }
             composable(Screen.History.route) {
-                HistoryScreenContent(historyFoods, historyDate, viewModel.dailyCalorieGoal, onDateSelected)
+                HistoryScreenContent(historyFoods, historyDate, dailyCalorieGoal, onDateSelected)
             }
             composable(Screen.Profile.route) {
-                ProfileScreenContent(viewModel)
+                ProfileScreenContent(
+                    name = name,
+                    profileImageUri = profileImageUri,
+                    height = height,
+                    weight = weight,
+                    age = age,
+                    activityLevel = activityLevel,
+                    dailyCalorieGoal = dailyCalorieGoal,
+                    proteinGoal = proteinGoal,
+                    carbsGoal = carbsGoal,
+                    fatGoal = fatGoal,
+                    onNameChange = onNameChange,
+                    onProfileImageChange = onProfileImageChange,
+                    onHeightChange = onHeightChange,
+                    onWeightChange = onWeightChange,
+                    onAgeChange = onAgeChange,
+                    onActivityLevelChange = onActivityLevelChange,
+                    onCalorieGoalChange = onCalorieGoalChange
+                )
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreenContent(
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
     }
 }
 
 @Composable
-fun MainDashboardContent(viewModel: FoodAssistantViewModel, foods: List<FoodEntity>) {
+fun MainDashboardContent(
+    foods: List<FoodEntity>,
+    calorieGoal: Int,
+    proteinGoal: Int,
+    carbsGoal: Int,
+    fatGoal: Int
+) {
     val totalCalories = foods.sumOf { it.calories }
     val totalProtein = foods.sumOf { it.protein }
     val totalCarbs = foods.sumOf { it.carbs }
     val totalFat = foods.sumOf { it.fat }
-
-    // Use dynamic goals from ViewModel
-    val calorieGoal = viewModel.dailyCalorieGoal
-    val proteinGoal = viewModel.proteinGoal
-    val carbsGoal = viewModel.carbsGoal
-    val fatGoal = viewModel.fatGoal
 
     LazyColumn(
         modifier = Modifier
@@ -472,7 +530,7 @@ fun HistorySummaryCard(foods: List<FoodEntity>, goal: Int) {
                 Text(
                     buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp)) {
-                            append(String.format("%, d", consumed))
+                            append(String.format(Locale.getDefault(), "%, d", consumed))
                         }
                         withStyle(SpanStyle(fontSize = 12.sp, color = Color.Gray)) {
                             append(" kcal")
@@ -486,7 +544,7 @@ fun HistorySummaryCard(foods: List<FoodEntity>, goal: Int) {
                 Text(
                     buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp)) {
-                            append(String.format("%, d", goal))
+                            append(String.format(Locale.getDefault(), "%, d", goal))
                         }
                         withStyle(SpanStyle(fontSize = 12.sp, color = Color.Gray)) {
                             append(" kcal")
@@ -640,23 +698,41 @@ fun MacroBadge(label: String, value: String, bgColor: Color, textColor: Color) {
 }
 
 @Composable
-fun ProfileScreenContent(viewModel: FoodAssistantViewModel) {
+fun ProfileScreenContent(
+    name: String,
+    profileImageUri: Uri?,
+    height: String,
+    weight: String,
+    age: String,
+    activityLevel: String,
+    dailyCalorieGoal: Int,
+    proteinGoal: Int,
+    carbsGoal: Int,
+    fatGoal: Int,
+    onNameChange: (String) -> Unit,
+    onProfileImageChange: (Uri) -> Unit,
+    onHeightChange: (String) -> Unit,
+    onWeightChange: (String) -> Unit,
+    onAgeChange: (String) -> Unit,
+    onActivityLevelChange: (String) -> Unit,
+    onCalorieGoalChange: (Int) -> Unit
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var isEditing by remember { mutableStateOf(false) }
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri: android.net.Uri? ->
+    ) { uri: Uri? ->
         uri?.let {
             try {
                 context.contentResolver.takePersistableUriPermission(
                     it,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Not a persistable URI, but we'll still try to use it
             }
-            viewModel.profileImageUri = it
+            onProfileImageChange(it)
         }
     }
 
@@ -670,10 +746,10 @@ fun ProfileScreenContent(viewModel: FoodAssistantViewModel) {
     ) {
         item {
             ProfileHeader(
-                name = viewModel.name,
-                imageUri = viewModel.profileImageUri,
+                name = name,
+                imageUri = profileImageUri,
                 isEditing = isEditing,
-                onNameChange = { viewModel.name = it },
+                onNameChange = onNameChange,
                 onEditImage = { 
                     imagePickerLauncher.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -683,25 +759,25 @@ fun ProfileScreenContent(viewModel: FoodAssistantViewModel) {
         }
         item {
             PersonalInfoSection(
-                height = viewModel.height,
-                weight = viewModel.weight,
-                age = viewModel.age,
-                activityLevel = viewModel.activityLevel,
+                height = height,
+                weight = weight,
+                age = age,
+                activityLevel = activityLevel,
                 isEditing = isEditing,
                 onEditClick = { isEditing = !isEditing },
-                onHeightChange = { viewModel.height = it },
-                onWeightChange = { viewModel.weight = it },
-                onAgeChange = { viewModel.age = it },
-                onActivityLevelChange = { viewModel.activityLevel = it }
+                onHeightChange = onHeightChange,
+                onWeightChange = onWeightChange,
+                onAgeChange = onAgeChange,
+                onActivityLevelChange = onActivityLevelChange
             )
         }
         item {
             NutritionalGoalsSection(
-                calorieGoal = viewModel.dailyCalorieGoal,
-                onCalorieGoalChange = { viewModel.dailyCalorieGoal = it },
-                proteinGoal = viewModel.proteinGoal,
-                carbsGoal = viewModel.carbsGoal,
-                fatGoal = viewModel.fatGoal
+                calorieGoal = dailyCalorieGoal,
+                onCalorieGoalChange = onCalorieGoalChange,
+                proteinGoal = proteinGoal,
+                carbsGoal = carbsGoal,
+                fatGoal = fatGoal
             )
         }
         item {
@@ -726,7 +802,7 @@ fun ProfileScreenContent(viewModel: FoodAssistantViewModel) {
 }
 
 @Composable
-fun ProfileHeader(name: String, imageUri: android.net.Uri?, onEditImage: () -> Unit, isEditing: Boolean, onNameChange: (String) -> Unit) {
+fun ProfileHeader(name: String, imageUri: Uri?, onEditImage: () -> Unit, isEditing: Boolean, onNameChange: (String) -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(contentAlignment = Alignment.BottomEnd) {
             Box(
@@ -910,7 +986,7 @@ fun ActivityLevelDropdown(
                     onValueChange = {},
                     readOnly = true,
                     modifier = Modifier
-                        .menuAnchor()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                         .fillMaxWidth(),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     colors = TextFieldDefaults.colors(
@@ -1065,7 +1141,7 @@ fun NutritionalGoalsSection(
                         )
                     } else {
                         Text(
-                            String.format("%, d kcal", calorieGoal),
+                            String.format(Locale.getDefault(), "%, d kcal", calorieGoal),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF446180)
@@ -1369,7 +1445,7 @@ fun ReviewMealScreenContent(
     onConfirmMeal: (MacroResponse) -> Unit,
     onBack: () -> Unit
 ) {
-    var selectedMealType by remember { mutableStateOf<String?>(macro.detectedMealType) }
+    var selectedMealType by remember { mutableStateOf(macro.detectedMealType) }
     val mealTypes = listOf("Breakfast", "Lunch", "Afternoon Snack", "Dinner")
 
     Column(
@@ -1712,7 +1788,252 @@ fun RecentMealsCard(meals: List<String>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun VitalityTopBar(profileImageUri: android.net.Uri?) {
+fun SettingsScreenContent(
+    onBack: () -> Unit
+) {
+    var isDarkMode by remember { mutableStateOf(false) }
+    var showModelDialog by remember { mutableStateOf(false) }
+    var selectedModel by remember { mutableStateOf("gemini-1.5-flash") }
+    var apiKey by remember { mutableStateOf("") }
+    var driveBackupEnabled by remember { mutableStateOf(false) }
+    var remindersEnabled by remember { mutableStateOf(true) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFB))
+    ) {
+        // Custom Top Bar for Settings
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF006D37))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "Settings",
+                style = MaterialTheme.typography.headlineMedium,
+                color = Color(0xFF006D37),
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                SettingsSection(title = "Appearance") {
+                    SettingsToggleItem(
+                        label = "Dark Mode",
+                        icon = Icons.Default.DarkMode,
+                        checked = isDarkMode,
+                        onCheckedChange = { isDarkMode = it }
+                    )
+                }
+            }
+
+            item {
+                SettingsSection(title = "AI Configuration") {
+                    SettingsClickItem(
+                        label = "LLM Model",
+                        value = selectedModel,
+                        icon = Icons.Default.SmartToy,
+                        onClick = { showModelDialog = true }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = Color(0xFFF2F4F5))
+                    SettingsInputItem(
+                        label = "API Key",
+                        value = apiKey,
+                        onValueChange = { apiKey = it },
+                        icon = Icons.Default.VpnKey,
+                        placeholder = "Enter Gemini API Key"
+                    )
+                }
+            }
+
+            item {
+                SettingsSection(title = "Data & Sync") {
+                    SettingsToggleItem(
+                        label = "Google Drive Backup",
+                        icon = Icons.Default.CloudUpload,
+                        checked = driveBackupEnabled,
+                        onCheckedChange = { driveBackupEnabled = it },
+                        subtitle = "Sync meal history (Coming Soon)"
+                    )
+                }
+            }
+
+            item {
+                SettingsSection(title = "Notifications") {
+                    SettingsToggleItem(
+                        label = "Logging Reminders",
+                        icon = Icons.Default.NotificationsActive,
+                        checked = remindersEnabled,
+                        onCheckedChange = { remindersEnabled = it },
+                        subtitle = "Get notified if you forget to log meals"
+                    )
+                }
+            }
+            
+            item { Spacer(modifier = Modifier.height(32.dp)) }
+        }
+    }
+
+    if (showModelDialog) {
+        AlertDialog(
+            onDismissRequest = { showModelDialog = false },
+            title = { Text("Select LLM Model") },
+            text = {
+                Column {
+                    listOf("gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp").forEach { model ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    selectedModel = model
+                                    showModelDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = selectedModel == model, onClick = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(model)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showModelDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.Gray,
+            modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(content = content)
+        }
+    }
+}
+
+@Composable
+fun SettingsToggleItem(
+    label: String,
+    icon: ImageVector,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    subtitle: String? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Icon(icon, contentDescription = null, tint = Color(0xFF446180))
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+                if (subtitle != null) {
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                }
+            }
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF2ECC71))
+        )
+    }
+}
+
+@Composable
+fun SettingsClickItem(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = Color(0xFF446180))
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(value, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
+        }
+    }
+}
+
+@Composable
+fun SettingsInputItem(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    icon: ImageVector,
+    placeholder: String
+) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = Color(0xFF446180))
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFFF2F4F5),
+                unfocusedContainerColor = Color(0xFFF2F4F5),
+                focusedIndicatorColor = Color(0xFF006D37)
+            ),
+            shape = RoundedCornerShape(12.dp)
+        )
+    }
+}
+
+@Composable
+fun VitalityTopBar(profileImageUri: Uri?, onSettingsClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1752,7 +2073,7 @@ fun VitalityTopBar(profileImageUri: android.net.Uri?) {
                 fontWeight = FontWeight.Bold
             )
         }
-        IconButton(onClick = { }) {
+        IconButton(onClick = onSettingsClick) {
             Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = Color(0xFF006D37))
         }
     }
@@ -1777,7 +2098,7 @@ fun CalorieOverview(consumed: Int, goal: Int) {
             )
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    String.format("%, d", consumed),
+                    String.format(Locale.getDefault(), "%, d", consumed),
                     style = MaterialTheme.typography.displayLarge,
                     fontWeight = FontWeight.Bold,
                     fontSize = 48.sp
@@ -2002,7 +2323,23 @@ val sampleFoodEntities = listOf(
 fun DashboardScreenPreview() {
     MacroTrackerTheme {
         MainScreenContent(
-            viewModel = viewModel(),
+            profileImageUri = null,
+            dailyCalorieGoal = 2000,
+            proteinGoal = 150,
+            carbsGoal = 200,
+            fatGoal = 65,
+            name = "Alex Johnson",
+            height = "182",
+            weight = "78.5",
+            age = "29",
+            activityLevel = "Very Active",
+            onNameChange = {},
+            onProfileImageChange = {},
+            onHeightChange = {},
+            onWeightChange = {},
+            onAgeChange = {},
+            onActivityLevelChange = {},
+            onCalorieGoalChange = {},
             loggedFoods = sampleFoodEntities,
             historyFoods = sampleFoodEntities,
             historyDate = System.currentTimeMillis(),
@@ -2047,7 +2384,24 @@ fun HistoryScreenPreview() {
 @Composable
 fun ProfileScreenPreview() {
     MacroTrackerTheme {
-        // Mock ViewModel for preview
-        ProfileScreenContent(viewModel())
+        ProfileScreenContent(
+            name = "Alex Johnson",
+            profileImageUri = null,
+            height = "182",
+            weight = "78.5",
+            age = "29",
+            activityLevel = "Very Active",
+            dailyCalorieGoal = 2000,
+            proteinGoal = 150,
+            carbsGoal = 200,
+            fatGoal = 65,
+            onNameChange = {},
+            onProfileImageChange = {},
+            onHeightChange = {},
+            onWeightChange = {},
+            onAgeChange = {},
+            onActivityLevelChange = {},
+            onCalorieGoalChange = {}
+        )
     }
 }
