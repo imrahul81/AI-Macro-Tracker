@@ -12,6 +12,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.example.macrotracker.data.FoodDatabase
 import com.example.macrotracker.data.FoodEntity
 import com.example.macrotracker.data.FoodRepository
@@ -204,6 +208,66 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             _dailyCalorieGoal = value
             prefs.edit().putInt("daily_calorie_goal", value).apply()
         }
+
+    private var _remindersEnabled by mutableStateOf(prefs.getBoolean("reminders_enabled", true))
+    var remindersEnabled: Boolean
+        get() = _remindersEnabled
+        set(value) {
+            _remindersEnabled = value
+            prefs.edit().putBoolean("reminders_enabled", value).apply()
+            if (value) {
+                scheduleAllReminders()
+            } else {
+                cancelAllReminders()
+            }
+        }
+
+    private fun scheduleAllReminders() {
+        val workManager = WorkManager.getInstance(getApplication())
+        
+        val mealTimes = listOf(
+            "Breakfast" to 10,
+            "Lunch" to 13,
+            "Afternoon Snack" to 17,
+            "Dinner" to 21,
+            "Final Reminder" to 23
+        )
+
+        mealTimes.forEach { (meal, hour) ->
+            val calendar = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                if (before(Calendar.getInstance())) {
+                    add(Calendar.DAY_OF_YEAR, 1)
+                }
+            }
+
+            val delay = calendar.timeInMillis - System.currentTimeMillis()
+            
+            // We use periodic work to repeat every 24 hours
+            val workRequest = PeriodicWorkRequestBuilder<MealReminderWorker>(24, java.util.concurrent.TimeUnit.HOURS)
+                .setInitialDelay(delay, java.util.concurrent.TimeUnit.MILLISECONDS)
+                .setInputData(workDataOf("meal_type" to meal))
+                .build()
+
+            workManager.enqueueUniquePeriodicWork(
+                "reminder_$meal",
+                ExistingPeriodicWorkPolicy.UPDATE,
+                workRequest
+            )
+        }
+    }
+
+    private fun cancelAllReminders() {
+        val workManager = WorkManager.getInstance(getApplication())
+        workManager.cancelAllWorkByTag("reminder_") // This might not work as expected with cancelAllWorkByTag
+        // Better way since we used unique names:
+        val meals = listOf("Breakfast", "Lunch", "Afternoon Snack", "Dinner", "Final Reminder")
+        meals.forEach { meal ->
+            workManager.cancelUniqueWork("reminder_$meal")
+        }
+    }
 
     // Dynamic Macro Calculations
     val proteinGoal: Int

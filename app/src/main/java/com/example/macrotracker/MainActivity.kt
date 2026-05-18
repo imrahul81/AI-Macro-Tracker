@@ -2,6 +2,7 @@ package com.example.macrotracker
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import androidx.activity.ComponentActivity
@@ -125,6 +126,8 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         onUseSystemThemeChange = { viewModel.useSystemTheme = it },
         onApiKeyChange = { viewModel.apiKey = it },
         onModelChange = { viewModel.selectedModel = it },
+        remindersEnabled = viewModel.remindersEnabled,
+        onRemindersEnabledChange = { viewModel.remindersEnabled = it },
         loggedFoods = loggedFoods,
         historyFoods = historyFoods,
         historyDate = historyDate,
@@ -164,6 +167,8 @@ fun MainScreenContent(
     onUseSystemThemeChange: (Boolean) -> Unit,
     onApiKeyChange: (String) -> Unit,
     onModelChange: (String) -> Unit,
+    remindersEnabled: Boolean,
+    onRemindersEnabledChange: (Boolean) -> Unit,
     loggedFoods: List<FoodEntity>,
     historyFoods: List<FoodEntity>,
     historyDate: Long,
@@ -327,6 +332,8 @@ fun MainScreenContent(
                     onApiKeyChange = onApiKeyChange,
                     selectedModel = selectedModel,
                     onModelChange = onModelChange,
+                    remindersEnabled = remindersEnabled,
+                    onRemindersEnabledChange = onRemindersEnabledChange,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -1864,11 +1871,20 @@ fun SettingsScreenContent(
     onApiKeyChange: (String) -> Unit,
     selectedModel: String,
     onModelChange: (String) -> Unit,
+    remindersEnabled: Boolean,
+    onRemindersEnabledChange: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
     var showModelDialog by remember { mutableStateOf(false) }
     var driveBackupEnabled by remember { mutableStateOf(false) }
-    var remindersEnabled by remember { mutableStateOf(true) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            onRemindersEnabledChange(true)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -1949,7 +1965,13 @@ fun SettingsScreenContent(
                         label = "Logging Reminders",
                         icon = Icons.Default.NotificationsActive,
                         checked = remindersEnabled,
-                        onCheckedChange = { remindersEnabled = it },
+                        onCheckedChange = {
+                            if (it) {
+                                permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                onRemindersEnabledChange(false)
+                            }
+                        },
                         subtitle = "Get notified if you forget to log meals"
                     )
                 }
@@ -2447,6 +2469,8 @@ fun DashboardScreenPreview() {
             onUseSystemThemeChange = {},
             onApiKeyChange = {},
             onModelChange = {},
+            remindersEnabled = true,
+            onRemindersEnabledChange = {},
             loggedFoods = sampleFoodEntities,
             historyFoods = sampleFoodEntities,
             historyDate = System.currentTimeMillis(),
