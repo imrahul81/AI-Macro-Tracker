@@ -147,58 +147,67 @@ fun MainScreenContent(
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val isSettingsScreen = currentDestination?.route == Screen.Settings.route
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        topBar = { VitalityTopBar(profileImageUri, onSettingsClick = { navController.navigate(Screen.Settings.route) }) },
+        topBar = { 
+            if (!isSettingsScreen) {
+                VitalityTopBar(profileImageUri, onSettingsClick = { navController.navigate(Screen.Settings.route) }) 
+            }
+        },
         bottomBar = {
-            NavigationBar(
-                containerColor = Color.White,
-                tonalElevation = 8.dp
-            ) {
-                val screens = listOf(
-                    Screen.Dashboard,
-                    Screen.LogFood,
-                    Screen.History,
-                    Screen.Profile
-                )
-                screens.forEach { screen ->
-                    NavigationBarItem(
-                        icon = { Icon(screen.icon, contentDescription = screen.label) },
-                        label = { Text(screen.label) },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color.White,
-                            selectedTextColor = Color(0xFF006D37),
-                            indicatorColor = Color(0xFF2ECC71)
-                        )
+            if (!isSettingsScreen) {
+                NavigationBar(
+                    containerColor = Color.White,
+                    tonalElevation = 8.dp
+                ) {
+                    val screens = listOf(
+                        Screen.Dashboard,
+                        Screen.LogFood,
+                        Screen.History,
+                        Screen.Profile
                     )
+                    screens.forEach { screen ->
+                        NavigationBarItem(
+                            icon = { Icon(screen.icon, contentDescription = screen.label) },
+                            label = { Text(screen.label) },
+                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color.White,
+                                selectedTextColor = Color(0xFF006D37),
+                                indicatorColor = Color(0xFF2ECC71)
+                            )
+                        )
+                    }
                 }
             }
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    navController.navigate(Screen.LogFood.route) {
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                containerColor = Color(0xFF2ECC71),
-                contentColor = Color.White,
-                shape = CircleShape,
-                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Food")
+            if (!isSettingsScreen) {
+                FloatingActionButton(
+                    onClick = {
+                        navController.navigate(Screen.LogFood.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    containerColor = Color(0xFF2ECC71),
+                    contentColor = Color.White,
+                    shape = CircleShape,
+                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Food")
+                }
             }
         }
     ) { innerPadding ->
@@ -297,6 +306,7 @@ fun MainDashboardContent(
             CalorieOverview(totalCalories, calorieGoal)
         }
         item {
+            Spacer(modifier = Modifier.height(24.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -2092,7 +2102,7 @@ fun CalorieOverview(consumed: Int, goal: Int) {
             MacroRing(
                 progress = progress,
                 color = Color(0xFF2ECC71),
-                size = 240.dp,
+                size = 216.dp,
                 strokeWidth = 24.dp,
                 inactiveColor = Color(0xFFEEEEEE)
             )
