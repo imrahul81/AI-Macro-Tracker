@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -1866,7 +1868,7 @@ fun SettingsScreenContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
@@ -1890,13 +1892,6 @@ fun SettingsScreenContent(
             item {
                 SettingsSection(title = "Appearance") {
                     SettingsToggleItem(
-                        label = "Follow System Theme",
-                        icon = Icons.Default.SettingsSuggest,
-                        checked = useSystemTheme,
-                        onCheckedChange = onUseSystemThemeChange
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                    SettingsToggleItem(
                         label = "Dark Mode",
                         icon = Icons.Default.DarkMode,
                         checked = isDarkMode,
@@ -1919,7 +1914,8 @@ fun SettingsScreenContent(
                         value = apiKey,
                         onValueChange = onApiKeyChange,
                         icon = Icons.Default.VpnKey,
-                        placeholder = "Enter Gemini API Key"
+                        placeholder = "Enter Gemini API Key",
+                        visualTransformation = PasswordVisualTransformation()
                     )
                 }
             }
@@ -2072,8 +2068,11 @@ fun SettingsInputItem(
     value: String,
     onValueChange: (String) -> Unit,
     icon: ImageVector,
-    placeholder: String
+    placeholder: String,
+    visualTransformation: VisualTransformation = VisualTransformation.None
 ) {
+    var isVisible by remember { mutableStateOf(visualTransformation == VisualTransformation.None) }
+    
     Column(modifier = Modifier.padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, contentDescription = null, tint = Color(0xFF446180))
@@ -2087,6 +2086,17 @@ fun SettingsInputItem(
             placeholder = { Text(placeholder) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            visualTransformation = if (isVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                if (visualTransformation != VisualTransformation.None) {
+                    IconButton(onClick = { isVisible = !isVisible }) {
+                        Icon(
+                            if (isVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (isVisible) "Hide" else "Show"
+                        )
+                    }
+                }
+            },
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -2103,7 +2113,7 @@ fun VitalityTopBar(profileImageUri: Uri?, onSettingsClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {

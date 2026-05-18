@@ -10,6 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.example.macrotracker.data.FoodDatabase
 import com.example.macrotracker.data.FoodEntity
 import com.example.macrotracker.data.FoodRepository
@@ -53,6 +55,18 @@ data class MacroResponse(
 class FoodAssistantViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: FoodRepository
     private val prefs: SharedPreferences = application.getSharedPreferences("user_profile", Context.MODE_PRIVATE)
+
+    private val masterKey = MasterKey.Builder(application)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+
+    private val encryptedPrefs: SharedPreferences = EncryptedSharedPreferences.create(
+        application,
+        "secure_user_profile",
+        masterKey,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
 
     init {
         val foodDao = FoodDatabase.getDatabase(application).foodDao()
@@ -165,12 +179,12 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             useSystemTheme = false
         }
 
-    private var _apiKey by mutableStateOf(prefs.getString("api_key", BuildConfig.GEMINI_API_KEY) ?: BuildConfig.GEMINI_API_KEY)
+    private var _apiKey by mutableStateOf(encryptedPrefs.getString("api_key", BuildConfig.GEMINI_API_KEY) ?: BuildConfig.GEMINI_API_KEY)
     var apiKey: String
         get() = _apiKey
         set(value) {
             _apiKey = value
-            prefs.edit().putString("api_key", value).apply()
+            encryptedPrefs.edit().putString("api_key", value).apply()
             updateGenerativeModel()
         }
 
