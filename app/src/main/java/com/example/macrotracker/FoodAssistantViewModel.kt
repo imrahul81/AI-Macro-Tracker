@@ -419,6 +419,12 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
     fun resetState() {
         uiState = FoodAssistantUiState.Idle
     }
+
+    fun deleteMeal(mealType: String, dateTimestamp: Long) {
+        viewModelScope.launch {
+            repository.deleteMeal(mealType, dateTimestamp)
+        }
+    }
 }
 
 sealed interface FoodAssistantUiState {

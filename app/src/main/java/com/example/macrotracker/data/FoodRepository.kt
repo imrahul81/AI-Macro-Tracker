@@ -25,4 +25,16 @@ class FoodRepository(private val foodDao: FoodDao) {
     suspend fun insert(food: FoodEntity) {
         foodDao.insert(food)
     }
+
+    suspend fun deleteMeal(mealType: String, dateTimestamp: Long) {
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = dateTimestamp
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val startOfDay = calendar.timeInMillis
+        val endOfDay = startOfDay + 24 * 60 * 60 * 1000
+        foodDao.deleteFoodsByMealAndDay(mealType, startOfDay, endOfDay)
+    }
 }

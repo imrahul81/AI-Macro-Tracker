@@ -142,7 +142,8 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         onAnalyzeMeal = { viewModel.analyzeMeal(it) },
         onConfirmMeal = { viewModel.confirmMeal(it) },
         onResetState = { viewModel.resetState() },
-        onDateSelected = { viewModel.setSelectedHistoryDate(it) }
+        onDateSelected = { viewModel.setSelectedHistoryDate(it) },
+        onDeleteMeal = { mealType, date -> viewModel.deleteMeal(mealType, date) }
     )
 }
 
@@ -187,7 +188,8 @@ fun MainScreenContent(
     onAnalyzeMeal: (String) -> Unit,
     onConfirmMeal: (MacroResponse) -> Unit,
     onResetState: () -> Unit,
-    onDateSelected: (Long) -> Unit
+    onDateSelected: (Long) -> Unit,
+    onDeleteMeal: (String, Long) -> Unit
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -354,7 +356,7 @@ fun MainScreenContent(
                 }
             }
             composable(Screen.History.route) {
-                HistoryScreenContent(historyFoods, historyDate, dailyCalorieGoal, onDateSelected)
+                HistoryScreenContent(historyFoods, historyDate, dailyCalorieGoal, onDateSelected, onDeleteMeal)
             }
             composable(Screen.Profile.route) {
                 ProfileScreenContent(
@@ -433,21 +435,21 @@ fun MainDashboardContent(
                     label = "Protein",
                     value = "${totalProtein}g",
                     progress = (totalProtein.toFloat() / proteinGoal).coerceIn(0f, 1f),
-                    color = Color(0xFF006D37),
+                    color = Color(0xFF2E7D32),
                     modifier = Modifier.weight(1f)
                 )
                 MacroCard(
                     label = "Carbs",
                     value = "${totalCarbs}g",
                     progress = (totalCarbs.toFloat() / carbsGoal).coerceIn(0f, 1f),
-                    color = Color(0xFF446180),
+                    color = Color(0xFF1976D2),
                     modifier = Modifier.weight(1f)
                 )
                 MacroCard(
                     label = "Fats",
                     value = "${totalFat}g",
                     progress = (totalFat.toFloat() / fatGoal).coerceIn(0f, 1f),
-                    color = Color(0xFF006397),
+                    color = Color(0xFFE65100),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -479,7 +481,7 @@ fun MainDashboardContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryScreenContent(foods: List<FoodEntity>, selectedDate: Long, calorieGoal: Int, onDateSelected: (Long) -> Unit) {
+fun HistoryScreenContent(foods: List<FoodEntity>, selectedDate: Long, calorieGoal: Int, onDateSelected: (Long) -> Unit, onDeleteMeal: (String, Long) -> Unit) {
     val groupedFoods = foods.groupBy { it.mealType }
     val mealTypes = listOf("Breakfast", "Lunch", "Afternoon Snack", "Dinner")
     
@@ -572,7 +574,8 @@ fun HistoryScreenContent(foods: List<FoodEntity>, selectedDate: Long, calorieGoa
                     icon = icon,
                     iconColor = if (mealFoods.isNotEmpty()) Color(0xFF2ECC71) else MaterialTheme.colorScheme.surfaceVariant,
                     isFirst = index == 0,
-                    isLast = index == mealTypes.size - 1
+                    isLast = index == mealTypes.size - 1,
+                    onDelete = { onDeleteMeal(mealType, selectedDate) }
                 )
             }
         }
@@ -652,9 +655,34 @@ fun TimelineItem(
     icon: ImageVector,
     iconColor: Color,
     isFirst: Boolean = false,
-    isLast: Boolean = false
+    isLast: Boolean = false,
+    onDelete: () -> Unit = {}
 ) {
     var isExpanded by remember { mutableStateOf(false) }
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete Meal") },
+            text = { Text("Are you sure you want to delete this $mealType entry and all its items?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete()
+                        showDeleteConfirmation = false
+                    }
+                ) {
+                    Text("Delete", color = Color(0xFFC0392B), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Row(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -703,7 +731,7 @@ fun TimelineItem(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(mealType, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                             Text(time, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                         }
@@ -717,6 +745,15 @@ fun TimelineItem(
                                 }
                             }
                         )
+                        if (foods.isNotEmpty()) {
+                            IconButton(onClick = { showDeleteConfirmation = true }) {
+                                Icon(
+                                    Icons.Default.DeleteOutline,
+                                    contentDescription = "Delete Meal",
+                                    tint = Color(0xFFC0392B)
+                                )
+                            }
+                        }
                     }
 
                     if (foods.isNotEmpty() && isExpanded) {
@@ -750,9 +787,9 @@ fun TimelineItem(
                             val totalCarbs = foods.sumOf { it.carbs }
                             val totalFat = foods.sumOf { it.fat }
                             
-                            MacroBadge("Protein", "${totalProtein}g", Color(0xFFE3F2FD), Color(0xFF1976D2))
-                            MacroBadge("Carbs", "${totalCarbs}g", Color(0xFFE8F5E9), Color(0xFF2E7D32))
-                            MacroBadge("Fats", "${totalFat}g", Color(0xFFFFF3E0), Color(0xFFE65100))
+                            MacroBadge("Protein", "${totalProtein}g", MaterialTheme.colorScheme.surfaceVariant, Color(0xFF2E7D32))
+                            MacroBadge("Carbs", "${totalCarbs}g", MaterialTheme.colorScheme.surfaceVariant, Color(0xFF1976D2))
+                            MacroBadge("Fats", "${totalFat}g", MaterialTheme.colorScheme.surfaceVariant, Color(0xFFE65100))
                         }
                     } else if (foods.isNotEmpty()) {
                          Icon(
@@ -1252,9 +1289,9 @@ fun NutritionalGoalsSection(
             }
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MacroGoalBadge("Protein", "${proteinGoal}g", Color(0xFFE3F2FD), Color(0xFF1976D2), modifier = Modifier.weight(1f))
-                MacroGoalBadge("Carbs", "${carbsGoal}g", Color(0xFFE8F5E9), Color(0xFF2E7D32), modifier = Modifier.weight(1f))
-                MacroGoalBadge("Fats", "${fatGoal}g", Color(0xFFF8FAFB), Color(0xFF446180), modifier = Modifier.weight(1f))
+                MacroGoalBadge("Protein", "${proteinGoal}g", MaterialTheme.colorScheme.surfaceVariant, Color(0xFF2E7D32), modifier = Modifier.weight(1f))
+                MacroGoalBadge("Carbs", "${carbsGoal}g", MaterialTheme.colorScheme.surfaceVariant, Color(0xFF1976D2), modifier = Modifier.weight(1f))
+                MacroGoalBadge("Fats", "${fatGoal}g", MaterialTheme.colorScheme.surfaceVariant, Color(0xFFE65100), modifier = Modifier.weight(1f))
             }
         }
     }
@@ -1574,8 +1611,9 @@ fun ReviewMealScreenContent(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        MacroSummaryBadge("Protein", "${macro.totalProtein}g", Color(0xFFE8F5E9), Color(0xFF2E7D32))
-                        MacroSummaryBadge("Carbs", "${macro.totalCarbs}g", Color(0xFFE3F2FD), Color(0xFF1976D2))
+                        MacroSummaryBadge("Protein", "${macro.totalProtein}g", MaterialTheme.colorScheme.surfaceVariant, Color(0xFF2E7D32))
+                        MacroSummaryBadge("Carbs", "${macro.totalCarbs}g", MaterialTheme.colorScheme.surfaceVariant, Color(0xFF1976D2))
+                        MacroSummaryBadge("Fats", "${macro.totalFat}g", MaterialTheme.colorScheme.surfaceVariant, Color(0xFFE65100))
                     }
                 }
             }
@@ -2493,7 +2531,8 @@ fun DashboardScreenPreview() {
             onAnalyzeMeal = {},
             onConfirmMeal = {},
             onResetState = {},
-            onDateSelected = {}
+            onDateSelected = {},
+            onDeleteMeal = { _, _ -> }
         )
     }
 
@@ -2522,7 +2561,8 @@ fun HistoryScreenPreview() {
             foods = sampleFoodEntities,
             selectedDate = System.currentTimeMillis(),
             calorieGoal = 2000,
-            onDateSelected = {}
+            onDateSelected = {},
+            onDeleteMeal = { _, _ -> }
         )
     }
 

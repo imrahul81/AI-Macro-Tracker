@@ -28,6 +28,9 @@ interface FoodDao {
 
     @Query("SELECT * FROM foods WHERE timestamp >= :startOfDay AND timestamp < :endOfDay ORDER BY timestamp ASC")
     fun getFoodsForDay(startOfDay: Long, endOfDay: Long): Flow<List<FoodEntity>>
+
+    @Query("DELETE FROM foods WHERE mealType = :mealType AND timestamp >= :startOfDay AND timestamp < :endOfDay")
+    suspend fun deleteFoodsByMealAndDay(mealType: String, startOfDay: Long, endOfDay: Long)
 }
 
 @Database(entities = [FoodEntity::class], version = 2)
