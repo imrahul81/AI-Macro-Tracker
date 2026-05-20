@@ -599,6 +599,7 @@ fun HistorySummaryCard(foods: List<FoodEntity>, goal: Int) {
     val consumed = foods.sumOf { it.calories }
     val left = (goal - consumed).coerceAtLeast(0)
     val progress = (consumed.toFloat() / goal).coerceIn(0f, 1f)
+    val isOverBudget = consumed > goal
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -614,14 +615,19 @@ fun HistorySummaryCard(foods: List<FoodEntity>, goal: Int) {
             Box(contentAlignment = Alignment.Center) {
                 MacroRing(
                     progress = progress,
-                    color = Color(0xFF006D37),
+                    color = if (isOverBudget) Color(0xFFC0392B) else Color(0xFF006D37),
                     size = 100.dp,
                     strokeWidth = 10.dp,
                     inactiveColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("LEFT", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    Text(left.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(if (isOverBudget) "OVER" else "LEFT", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(
+                        if (isOverBudget) (consumed - goal).toString() else left.toString(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isOverBudget) Color(0xFFC0392B) else MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
 
@@ -2362,6 +2368,8 @@ fun VitalityTopBar(
 fun CalorieOverview(consumed: Int, goal: Int) {
     val progress = (consumed.toFloat() / goal).coerceIn(0f, 1f)
     val percentage = (progress * 100).toInt()
+    val isOverBudget = consumed > goal
+    val arcColor = if (isOverBudget) Color(0xFFC0392B) else Color(0xFF2ECC71)
     
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -2370,7 +2378,7 @@ fun CalorieOverview(consumed: Int, goal: Int) {
         Box(contentAlignment = Alignment.Center) {
             MacroRing(
                 progress = progress,
-                color = Color(0xFF2ECC71),
+                color = arcColor,
                 size = 216.dp,
                 strokeWidth = 24.dp,
                 inactiveColor = MaterialTheme.colorScheme.surfaceVariant
@@ -2380,7 +2388,8 @@ fun CalorieOverview(consumed: Int, goal: Int) {
                     String.format(Locale.getDefault(), "%, d", consumed),
                     style = MaterialTheme.typography.displayLarge,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 48.sp
+                    fontSize = 48.sp,
+                    color = if (isOverBudget) Color(0xFFC0392B) else MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     "/ $goal KCAL",
@@ -2390,13 +2399,13 @@ fun CalorieOverview(consumed: Int, goal: Int) {
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Surface(
-                    color = Color(0xFF2ECC71).copy(alpha = 0.1f),
+                    color = arcColor.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        "$percentage% GOAL",
+                        if (isOverBudget) "OVER BUDGET" else "$percentage% GOAL",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        color = Color(0xFF006D37),
+                        color = arcColor,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -2408,6 +2417,9 @@ fun CalorieOverview(consumed: Int, goal: Int) {
 
 @Composable
 fun MacroCard(label: String, value: String, progress: Float, color: Color, modifier: Modifier = Modifier) {
+    val isOverBudget = progress >= 1f
+    val displayColor = if (isOverBudget) Color(0xFFC0392B) else color
+
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
@@ -2421,15 +2433,15 @@ fun MacroCard(label: String, value: String, progress: Float, color: Color, modif
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             MacroRing(
-                progress = progress,
-                color = color,
+                progress = progress.coerceIn(0f, 1f),
+                color = displayColor,
                 size = 60.dp,
                 strokeWidth = 8.dp,
                 inactiveColor = MaterialTheme.colorScheme.surfaceVariant
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray, fontWeight = FontWeight.Medium)
-            Text(value, style = MaterialTheme.typography.titleLarge, color = color, fontWeight = FontWeight.Bold)
+            Text(value, style = MaterialTheme.typography.titleLarge, color = displayColor, fontWeight = FontWeight.Bold)
         }
     }
 }
