@@ -415,52 +415,6 @@ fun MainDashboardContent(
                 FoodListItemEntity(foodEntity)
             }
         }
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(
-                    selected = true,
-                    onClick = { },
-                    label = { Text("High Protein") },
-                    leadingIcon = { Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                    shape = CircleShape,
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color(0xFFE3F2FD),
-                        selectedLabelColor = Color(0xFF1976D2),
-                        selectedLeadingIconColor = Color(0xFF1976D2)
-                    ),
-                    border = null
-                )
-                FilterChip(
-                    selected = false,
-                    onClick = { },
-                    label = { Text("Recent") },
-                    leadingIcon = { Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                    shape = CircleShape,
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = Color(0xFFEEEEEE),
-                        labelColor = Color.Gray,
-                        iconColor = Color.Gray
-                    ),
-                    border = null
-                )
-                FilterChip(
-                    selected = false,
-                    onClick = { },
-                    label = { Text("Favorites") },
-                    leadingIcon = { Icon(Icons.Default.StarOutline, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                    shape = CircleShape,
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = Color(0xFFEEEEEE),
-                        labelColor = Color.Gray,
-                        iconColor = Color.Gray
-                    ),
-                    border = null
-                )
-            }
-        }
     }
 }
 
@@ -854,24 +808,6 @@ fun ProfileScreenContent(
                 fatGoal = fatGoal
             )
         }
-        item {
-            AccountSection()
-        }
-        item {
-            OutlinedButton(
-                onClick = { },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFC0392B)),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC0392B))
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Logout", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            }
-        }
     }
 }
 
@@ -1089,14 +1025,15 @@ fun ActivityLevelDropdown(
         } else {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFFF2F4F5),
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
                     text = value,
                     modifier = Modifier.padding(12.dp),
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -1268,26 +1205,6 @@ fun AccountSection() {
             AccountItem(label = "Email Address", value = "alex.j@example.com")
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
             AccountItem(label = "Password", value = "••••••••••••")
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.NotificationsNone, contentDescription = null, tint = Color(0xFF446180))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("Push Notifications", style = MaterialTheme.typography.bodyLarge)
-                }
-                var notificationsEnabled by remember { mutableStateOf(true) }
-                Switch(
-                    checked = notificationsEnabled,
-                    onCheckedChange = { notificationsEnabled = it },
-                    colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF2ECC71))
-                )
-            }
         }
     }
 }
@@ -1448,53 +1365,16 @@ fun LogFoodScreenContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Row(
+        InfoCard(
+            icon = Icons.Default.Lightbulb,
+            title = "Be Specific",
+            description = "Mention portion sizes like 'a handful' or 'half a plate' for better accuracy.",
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            InfoCard(
-                icon = Icons.Default.Lightbulb,
-                title = "Be Specific",
-                description = "Mention portion sizes like 'a handful' or 'half a plate' for better accuracy.",
-                modifier = Modifier.weight(1f),
-                containerColor = Color(0xFFE3F2FD),
-                contentColor = Color(0xFF1976D2)
-            )
-            RecentMealsCard(
-                meals = recentMeals,
-                modifier = Modifier.weight(1f)
-            )
-        }
+            containerColor = Color(0xFFE3F2FD),
+            contentColor = Color(0xFF1976D2)
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color.LightGray)
-        ) {
-            // Background Image would go here
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Bottom
-            ) {
-                Text("AI Vision", color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                Text("Snap a photo to let AI identify the nutrients instantly.", color = Color.White, style = MaterialTheme.typography.bodySmall)
-            }
-            IconButton(
-                onClick = { /* Camera */ },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .background(Color.White.copy(alpha = 0.3f), CircleShape)
-            ) {
-                Icon(Icons.Default.CameraAlt, contentDescription = "Camera", tint = Color.White)
-            }
-        }
 
         // Show result overlay - REMOVED, replaced by navigation to ReviewMeal
         
@@ -1832,34 +1712,6 @@ fun InfoCard(
     }
 }
 
-@Composable
-fun RecentMealsCard(meals: List<String>, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF2F4F5)),
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Icon(Icons.Default.History, contentDescription = null, tint = Color.Gray)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Recent Meals", fontWeight = FontWeight.Bold, color = Color.Gray)
-            Spacer(modifier = Modifier.height(8.dp))
-            meals.forEach { meal ->
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                ) {
-                    Text(
-                        meal,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun SettingsScreenContent(
@@ -1972,6 +1824,26 @@ fun SettingsScreenContent(
                         },
                         subtitle = "Get notified if you forget to log meals"
                     )
+                }
+            }
+
+            item {
+                AccountSection()
+            }
+
+            item {
+                OutlinedButton(
+                    onClick = { },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFC0392B)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFC0392B))
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Logout", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
             }
             
