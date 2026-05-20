@@ -17,6 +17,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -85,6 +86,7 @@ class MainActivity : ComponentActivity() {
 }
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
+    data object Welcome : Screen("welcome", "Welcome", Icons.Default.Handshake)
     data object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.GridView)
     data object LogFood : Screen("log_food", "Log Food", Icons.Default.AddCircleOutline)
     data object History : Screen("history", "History", Icons.Default.History)
@@ -119,6 +121,7 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         activityLevel = viewModel.activityLevel,
         isDarkMode = if (viewModel.useSystemTheme) systemInDarkTheme else viewModel.isDarkMode,
         useSystemTheme = viewModel.useSystemTheme,
+        isFirstTime = viewModel.isFirstTime,
         apiKey = viewModel.apiKey,
         selectedModel = viewModel.selectedModel,
         onNameChange = { viewModel.name = it },
@@ -147,7 +150,8 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         onConfirmMeal = { viewModel.confirmMeal(it) },
         onResetState = { viewModel.resetState() },
         onDateSelected = { viewModel.setSelectedHistoryDate(it) },
-        onDeleteMeal = { mealType, date -> viewModel.deleteMeal(mealType, date) }
+        onDeleteMeal = { mealType, date -> viewModel.deleteMeal(mealType, date) },
+        onFirstTimeFinished = { viewModel.isFirstTime = false }
     )
 }
 
@@ -169,6 +173,7 @@ fun MainScreenContent(
     activityLevel: String,
     isDarkMode: Boolean,
     useSystemTheme: Boolean,
+    isFirstTime: Boolean,
     apiKey: String,
     selectedModel: String,
     onNameChange: (String) -> Unit,
@@ -197,14 +202,17 @@ fun MainScreenContent(
     onConfirmMeal: (MacroResponse) -> Unit,
     onResetState: () -> Unit,
     onDateSelected: (Long) -> Unit,
-    onDeleteMeal: (String, Long) -> Unit
+    onDeleteMeal: (String, Long) -> Unit,
+    onFirstTimeFinished: () -> Unit
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val isWelcomeScreen = currentDestination?.route == Screen.Welcome.route
     val isSettingsScreen = currentDestination?.route == Screen.Settings.route
 
     val screenOrder = listOf(
+        Screen.Welcome.route,
         Screen.Dashboard.route,
         Screen.LogFood.route,
         Screen.ReviewMeal.route,
@@ -216,7 +224,7 @@ fun MainScreenContent(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = { 
-            if (!isSettingsScreen) {
+            if (!isSettingsScreen && !isWelcomeScreen) {
                 VitalityTopBar(
                     profileImageUri = profileImageUri,
                     onSettingsClick = { navController.navigate(Screen.Settings.route) },
@@ -233,7 +241,7 @@ fun MainScreenContent(
             }
         },
         bottomBar = {
-            if (!isSettingsScreen) {
+            if (!isSettingsScreen && !isWelcomeScreen) {
                 NavigationBar(
                     containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 8.dp
@@ -271,7 +279,7 @@ fun MainScreenContent(
             }
         },
         floatingActionButton = {
-            if (!isSettingsScreen) {
+            if (!isSettingsScreen && !isWelcomeScreen) {
                 FloatingActionButton(
                     onClick = {
                         navController.navigate(Screen.LogFood.route) {
@@ -291,7 +299,7 @@ fun MainScreenContent(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Dashboard.route,
+            startDestination = if (isFirstTime) Screen.Welcome.route else Screen.Dashboard.route,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -332,6 +340,16 @@ fun MainScreenContent(
                 }
             }
         ) {
+            composable(Screen.Welcome.route) {
+                WelcomeScreenContent(
+                    onGetStarted = {
+                        onFirstTimeFinished()
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Welcome.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
             composable(Screen.Dashboard.route) {
                 MainDashboardContent(loggedFoods, dailyCalorieGoal, proteinGoal, carbsGoal, fatGoal)
             }
@@ -410,6 +428,115 @@ fun MainScreenContent(
                     onBack = { navController.popBackStack() }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun WelcomeScreenContent(onGetStarted: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(48.dp))
+        
+        Icon(
+            Icons.Default.AutoAwesome,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = Color(0xFF2ECC71)
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Text(
+            "Welcome to AI Macro Tracker",
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            color = Color(0xFF006D37)
+        )
+        
+        Text(
+            "Your intelligent companion for a healthier lifestyle",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.Gray,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(48.dp))
+        
+        FeatureRow(
+            icon = Icons.Default.GridView,
+            title = "Personal Dashboard",
+            description = "Track your daily calorie and macro progress at a glance. See how much you have left and if you're hitting your goals."
+        )
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        FeatureRow(
+            icon = Icons.Default.AddCircleOutline,
+            title = "AI Food Logging",
+            description = "Simply describe what you ate in natural language or use your voice. Our AI will analyze the nutrients for you."
+        )
+        
+        Spacer(modifier = Modifier.height(32.dp))
+        
+        FeatureRow(
+            icon = Icons.Default.History,
+            title = "Meal History",
+            description = "Review your past logs, see detailed breakdowns of each meal, and manage your history with easy deletion and editing."
+        )
+        
+        Spacer(modifier = Modifier.height(48.dp))
+        
+        Button(
+            onClick = onGetStarted,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006D37)),
+            shape = RoundedCornerShape(28.dp)
+        ) {
+            Text("Get Started", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+fun FeatureRow(icon: ImageVector, title: String, description: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .background(Color(0xFF2ECC71).copy(alpha = 0.1f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = Color(0xFF006D37))
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
         }
     }
 }
@@ -2631,6 +2758,7 @@ fun DashboardScreenPreview() {
             activityLevel = "Very Active",
             isDarkMode = false,
             useSystemTheme = true,
+            isFirstTime = false,
             apiKey = "",
             selectedModel = "gemini-1.5-flash",
             onNameChange = {},
@@ -2659,7 +2787,8 @@ fun DashboardScreenPreview() {
             onConfirmMeal = {},
             onResetState = {},
             onDateSelected = {},
-            onDeleteMeal = { _, _ -> }
+            onDeleteMeal = { _, _ -> },
+            onFirstTimeFinished = {}
         )
     }
 

@@ -64,13 +64,25 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
 
-    private val encryptedPrefs: SharedPreferences = EncryptedSharedPreferences.create(
-        application,
-        "secure_user_profile",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    private val encryptedPrefs: SharedPreferences = try {
+        EncryptedSharedPreferences.create(
+            application,
+            "secure_user_profile",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (e: Exception) {
+        // Fallback: delete corrupted prefs and try again
+        application.deleteSharedPreferences("secure_user_profile")
+        EncryptedSharedPreferences.create(
+            application,
+            "secure_user_profile",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
     init {
         val foodDao = FoodDatabase.getDatabase(application).foodDao()
@@ -252,6 +264,14 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             } else {
                 cancelAllReminders()
             }
+        }
+
+    private var _isFirstTime by mutableStateOf(prefs.getBoolean("is_first_time", true))
+    var isFirstTime: Boolean
+        get() = _isFirstTime
+        set(value) {
+            _isFirstTime = value
+            prefs.edit().putBoolean("is_first_time", value).apply()
         }
 
     private fun scheduleAllReminders() {
