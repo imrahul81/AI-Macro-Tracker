@@ -166,6 +166,22 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             prefs.edit().putString("weight", value).apply()
         }
 
+    private var _targetWeight by mutableStateOf(prefs.getString("target_weight", "75.0") ?: "75.0")
+    var targetWeight: String
+        get() = _targetWeight
+        set(value) {
+            _targetWeight = value
+            prefs.edit().putString("target_weight", value).apply()
+        }
+
+    private var _bodyFat by mutableStateOf(prefs.getString("body_fat", "20.0") ?: "20.0")
+    var bodyFat: String
+        get() = _bodyFat
+        set(value) {
+            _bodyFat = value
+            prefs.edit().putString("body_fat", value).apply()
+        }
+
     private var _age by mutableStateOf(prefs.getString("age", "29") ?: "29")
     var age: String
         get() = _age

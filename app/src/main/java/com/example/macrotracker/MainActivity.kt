@@ -109,6 +109,8 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         name = viewModel.name,
         height = viewModel.height,
         weight = viewModel.weight,
+        targetWeight = viewModel.targetWeight,
+        bodyFat = viewModel.bodyFat,
         age = viewModel.age,
         activityLevel = viewModel.activityLevel,
         isDarkMode = if (viewModel.useSystemTheme) systemInDarkTheme else viewModel.isDarkMode,
@@ -119,6 +121,8 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         onProfileImageChange = { viewModel.profileImageUri = it },
         onHeightChange = { viewModel.height = it },
         onWeightChange = { viewModel.weight = it },
+        onTargetWeightChange = { viewModel.targetWeight = it },
+        onBodyFatChange = { viewModel.bodyFat = it },
         onAgeChange = { viewModel.age = it },
         onActivityLevelChange = { viewModel.activityLevel = it },
         onCalorieGoalChange = { viewModel.dailyCalorieGoal = it },
@@ -150,6 +154,8 @@ fun MainScreenContent(
     name: String,
     height: String,
     weight: String,
+    targetWeight: String,
+    bodyFat: String,
     age: String,
     activityLevel: String,
     isDarkMode: Boolean,
@@ -160,6 +166,8 @@ fun MainScreenContent(
     onProfileImageChange: (Uri) -> Unit,
     onHeightChange: (String) -> Unit,
     onWeightChange: (String) -> Unit,
+    onTargetWeightChange: (String) -> Unit,
+    onBodyFatChange: (String) -> Unit,
     onAgeChange: (String) -> Unit,
     onActivityLevelChange: (String) -> Unit,
     onCalorieGoalChange: (Int) -> Unit,
@@ -307,6 +315,8 @@ fun MainScreenContent(
                     profileImageUri = profileImageUri,
                     height = height,
                     weight = weight,
+                    targetWeight = targetWeight,
+                    bodyFat = bodyFat,
                     age = age,
                     activityLevel = activityLevel,
                     dailyCalorieGoal = dailyCalorieGoal,
@@ -317,6 +327,8 @@ fun MainScreenContent(
                     onProfileImageChange = onProfileImageChange,
                     onHeightChange = onHeightChange,
                     onWeightChange = onWeightChange,
+                    onTargetWeightChange = onTargetWeightChange,
+                    onBodyFatChange = onBodyFatChange,
                     onAgeChange = onAgeChange,
                     onActivityLevelChange = onActivityLevelChange,
                     onCalorieGoalChange = onCalorieGoalChange
@@ -731,6 +743,8 @@ fun ProfileScreenContent(
     profileImageUri: Uri?,
     height: String,
     weight: String,
+    targetWeight: String,
+    bodyFat: String,
     age: String,
     activityLevel: String,
     dailyCalorieGoal: Int,
@@ -741,6 +755,8 @@ fun ProfileScreenContent(
     onProfileImageChange: (Uri) -> Unit,
     onHeightChange: (String) -> Unit,
     onWeightChange: (String) -> Unit,
+    onTargetWeightChange: (String) -> Unit,
+    onBodyFatChange: (String) -> Unit,
     onAgeChange: (String) -> Unit,
     onActivityLevelChange: (String) -> Unit,
     onCalorieGoalChange: (Int) -> Unit
@@ -789,12 +805,16 @@ fun ProfileScreenContent(
             PersonalInfoSection(
                 height = height,
                 weight = weight,
+                targetWeight = targetWeight,
+                bodyFat = bodyFat,
                 age = age,
                 activityLevel = activityLevel,
                 isEditing = isEditing,
                 onEditClick = { isEditing = !isEditing },
                 onHeightChange = onHeightChange,
                 onWeightChange = onWeightChange,
+                onTargetWeightChange = onTargetWeightChange,
+                onBodyFatChange = onBodyFatChange,
                 onAgeChange = onAgeChange,
                 onActivityLevelChange = onActivityLevelChange
             )
@@ -904,12 +924,16 @@ fun ProfileHeader(name: String, imageUri: Uri?, onEditImage: () -> Unit, isEditi
 fun PersonalInfoSection(
     height: String,
     weight: String,
+    targetWeight: String,
+    bodyFat: String,
     age: String,
     activityLevel: String,
     isEditing: Boolean,
     onEditClick: () -> Unit,
     onHeightChange: (String) -> Unit,
     onWeightChange: (String) -> Unit,
+    onTargetWeightChange: (String) -> Unit,
+    onBodyFatChange: (String) -> Unit,
     onAgeChange: (String) -> Unit,
     onActivityLevelChange: (String) -> Unit
 ) {
@@ -946,6 +970,25 @@ fun PersonalInfoSection(
                     unit = "kg",
                     isEditing = isEditing,
                     onValueChange = onWeightChange,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                EditableInfoItem(
+                    label = "Target Weight",
+                    value = targetWeight,
+                    unit = "kg",
+                    isEditing = isEditing,
+                    onValueChange = onTargetWeightChange,
+                    modifier = Modifier.weight(1f)
+                )
+                EditableInfoItem(
+                    label = "Body Fat",
+                    value = bodyFat,
+                    unit = "%",
+                    isEditing = isEditing,
+                    onValueChange = onBodyFatChange,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -2372,6 +2415,8 @@ fun DashboardScreenPreview() {
             name = "Alex Johnson",
             height = "182",
             weight = "78.5",
+            targetWeight = "75.0",
+            bodyFat = "20.0",
             age = "29",
             activityLevel = "Very Active",
             isDarkMode = false,
@@ -2382,6 +2427,8 @@ fun DashboardScreenPreview() {
             onProfileImageChange = {},
             onHeightChange = {},
             onWeightChange = {},
+            onTargetWeightChange = {},
+            onBodyFatChange = {},
             onAgeChange = {},
             onActivityLevelChange = {},
             onCalorieGoalChange = {},
@@ -2443,6 +2490,8 @@ fun ProfileScreenPreview() {
             profileImageUri = null,
             height = "182",
             weight = "78.5",
+            targetWeight = "75.0",
+            bodyFat = "20.0",
             age = "29",
             activityLevel = "Very Active",
             dailyCalorieGoal = 2000,
@@ -2453,6 +2502,8 @@ fun ProfileScreenPreview() {
             onProfileImageChange = {},
             onHeightChange = {},
             onWeightChange = {},
+            onTargetWeightChange = {},
+            onBodyFatChange = {},
             onAgeChange = {},
             onActivityLevelChange = {},
             onCalorieGoalChange = {}
