@@ -113,6 +113,8 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         weight = viewModel.weight,
         targetWeight = viewModel.targetWeight,
         bodyFat = viewModel.bodyFat,
+        targetBodyFat = viewModel.targetBodyFat,
+        goalPace = viewModel.goalPace,
         age = viewModel.age,
         activityLevel = viewModel.activityLevel,
         isDarkMode = if (viewModel.useSystemTheme) systemInDarkTheme else viewModel.isDarkMode,
@@ -125,6 +127,8 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         onWeightChange = { viewModel.weight = it },
         onTargetWeightChange = { viewModel.targetWeight = it },
         onBodyFatChange = { viewModel.bodyFat = it },
+        onTargetBodyFatChange = { viewModel.targetBodyFat = it },
+        onGoalPaceChange = { viewModel.goalPace = it },
         onAgeChange = { viewModel.age = it },
         onActivityLevelChange = { viewModel.activityLevel = it },
         onCalorieGoalChange = { viewModel.dailyCalorieGoal = it },
@@ -159,6 +163,8 @@ fun MainScreenContent(
     weight: String,
     targetWeight: String,
     bodyFat: String,
+    targetBodyFat: String,
+    goalPace: String,
     age: String,
     activityLevel: String,
     isDarkMode: Boolean,
@@ -171,6 +177,8 @@ fun MainScreenContent(
     onWeightChange: (String) -> Unit,
     onTargetWeightChange: (String) -> Unit,
     onBodyFatChange: (String) -> Unit,
+    onTargetBodyFatChange: (String) -> Unit,
+    onGoalPaceChange: (String) -> Unit,
     onAgeChange: (String) -> Unit,
     onActivityLevelChange: (String) -> Unit,
     onCalorieGoalChange: (Int) -> Unit,
@@ -366,6 +374,8 @@ fun MainScreenContent(
                     weight = weight,
                     targetWeight = targetWeight,
                     bodyFat = bodyFat,
+                    targetBodyFat = targetBodyFat,
+                    goalPace = goalPace,
                     age = age,
                     activityLevel = activityLevel,
                     dailyCalorieGoal = dailyCalorieGoal,
@@ -378,6 +388,8 @@ fun MainScreenContent(
                     onWeightChange = onWeightChange,
                     onTargetWeightChange = onTargetWeightChange,
                     onBodyFatChange = onBodyFatChange,
+                    onTargetBodyFatChange = onTargetBodyFatChange,
+                    onGoalPaceChange = onGoalPaceChange,
                     onAgeChange = onAgeChange,
                     onActivityLevelChange = onActivityLevelChange,
                     onCalorieGoalChange = onCalorieGoalChange
@@ -829,6 +841,8 @@ fun ProfileScreenContent(
     weight: String,
     targetWeight: String,
     bodyFat: String,
+    targetBodyFat: String,
+    goalPace: String,
     age: String,
     activityLevel: String,
     dailyCalorieGoal: Int,
@@ -841,6 +855,8 @@ fun ProfileScreenContent(
     onWeightChange: (String) -> Unit,
     onTargetWeightChange: (String) -> Unit,
     onBodyFatChange: (String) -> Unit,
+    onTargetBodyFatChange: (String) -> Unit,
+    onGoalPaceChange: (String) -> Unit,
     onAgeChange: (String) -> Unit,
     onActivityLevelChange: (String) -> Unit,
     onCalorieGoalChange: (Int) -> Unit
@@ -891,6 +907,8 @@ fun ProfileScreenContent(
                 weight = weight,
                 targetWeight = targetWeight,
                 bodyFat = bodyFat,
+                targetBodyFat = targetBodyFat,
+                goalPace = goalPace,
                 age = age,
                 activityLevel = activityLevel,
                 isEditing = isEditing,
@@ -899,6 +917,8 @@ fun ProfileScreenContent(
                 onWeightChange = onWeightChange,
                 onTargetWeightChange = onTargetWeightChange,
                 onBodyFatChange = onBodyFatChange,
+                onTargetBodyFatChange = onTargetBodyFatChange,
+                onGoalPaceChange = onGoalPaceChange,
                 onAgeChange = onAgeChange,
                 onActivityLevelChange = onActivityLevelChange
             )
@@ -1010,6 +1030,8 @@ fun PersonalInfoSection(
     weight: String,
     targetWeight: String,
     bodyFat: String,
+    targetBodyFat: String,
+    goalPace: String,
     age: String,
     activityLevel: String,
     isEditing: Boolean,
@@ -1018,6 +1040,8 @@ fun PersonalInfoSection(
     onWeightChange: (String) -> Unit,
     onTargetWeightChange: (String) -> Unit,
     onBodyFatChange: (String) -> Unit,
+    onTargetBodyFatChange: (String) -> Unit,
+    onGoalPaceChange: (String) -> Unit,
     onAgeChange: (String) -> Unit,
     onActivityLevelChange: (String) -> Unit
 ) {
@@ -1079,6 +1103,14 @@ fun PersonalInfoSection(
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 EditableInfoItem(
+                    label = "Target Body Fat",
+                    value = targetBodyFat,
+                    unit = "%",
+                    isEditing = isEditing,
+                    onValueChange = onTargetBodyFatChange,
+                    modifier = Modifier.weight(1f)
+                )
+                EditableInfoItem(
                     label = "Age",
                     value = age,
                     unit = "years",
@@ -1086,11 +1118,90 @@ fun PersonalInfoSection(
                     onValueChange = onAgeChange,
                     modifier = Modifier.weight(1f)
                 )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                GoalPaceDropdown(
+                    value = goalPace,
+                    isEditing = isEditing,
+                    onValueChange = onGoalPaceChange,
+                    modifier = Modifier.weight(1f)
+                )
                 ActivityLevelDropdown(
                     value = activityLevel,
                     isEditing = isEditing,
                     onValueChange = onActivityLevelChange,
                     modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GoalPaceDropdown(
+    value: String,
+    isEditing: Boolean,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val options = listOf("Moderate", "Aggressive", "Extreme")
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        Text("Goal Pace", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        if (isEditing) {
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TextField(
+                    value = value,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                        .fillMaxWidth(),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedIndicatorColor = Color(0xFF006D37)
+                    )
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                ) {
+                    options.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                onValueChange(option)
+                                expanded = false
+                            },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                        )
+                    }
+                }
+            }
+        } else {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = value,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -2502,6 +2613,8 @@ fun DashboardScreenPreview() {
             weight = "78.5",
             targetWeight = "75.0",
             bodyFat = "20.0",
+            targetBodyFat = "15.0",
+            goalPace = "Moderate",
             age = "29",
             activityLevel = "Very Active",
             isDarkMode = false,
@@ -2514,6 +2627,8 @@ fun DashboardScreenPreview() {
             onWeightChange = {},
             onTargetWeightChange = {},
             onBodyFatChange = {},
+            onTargetBodyFatChange = {},
+            onGoalPaceChange = {},
             onAgeChange = {},
             onActivityLevelChange = {},
             onCalorieGoalChange = {},
@@ -2579,6 +2694,8 @@ fun ProfileScreenPreview() {
             weight = "78.5",
             targetWeight = "75.0",
             bodyFat = "20.0",
+            targetBodyFat = "15.0",
+            goalPace = "Moderate",
             age = "29",
             activityLevel = "Very Active",
             dailyCalorieGoal = 2000,
@@ -2591,6 +2708,8 @@ fun ProfileScreenPreview() {
             onWeightChange = {},
             onTargetWeightChange = {},
             onBodyFatChange = {},
+            onTargetBodyFatChange = {},
+            onGoalPaceChange = {},
             onAgeChange = {},
             onActivityLevelChange = {},
             onCalorieGoalChange = {}
