@@ -288,24 +288,6 @@ fun MainScreenContent(
                 }
             }
         },
-        floatingActionButton = {
-            if (!isSettingsScreen && !isWelcomeScreen) {
-                FloatingActionButton(
-                    onClick = {
-                        navController.navigate(Screen.LogFood.route) {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    containerColor = Color(0xFF2ECC71),
-                    contentColor = Color.White,
-                    shape = CircleShape,
-                    elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Food")
-                }
-            }
-        }
     ) { innerPadding ->
         NavHost(
             navController = navController,
