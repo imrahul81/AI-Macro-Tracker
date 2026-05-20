@@ -117,6 +117,7 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         bodyFat = viewModel.bodyFat,
         targetBodyFat = viewModel.targetBodyFat,
         goalPace = viewModel.goalPace,
+        gender = viewModel.gender,
         age = viewModel.age,
         activityLevel = viewModel.activityLevel,
         isDarkMode = if (viewModel.useSystemTheme) systemInDarkTheme else viewModel.isDarkMode,
@@ -125,6 +126,7 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         apiKey = viewModel.apiKey,
         selectedModel = viewModel.selectedModel,
         onNameChange = { viewModel.name = it },
+        onGenderChange = { viewModel.gender = it },
         onProfileImageChange = { viewModel.profileImageUri = it },
         onHeightChange = { viewModel.height = it },
         onWeightChange = { viewModel.weight = it },
@@ -135,6 +137,7 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         onAgeChange = { viewModel.age = it },
         onActivityLevelChange = { viewModel.activityLevel = it },
         onCalorieGoalChange = { viewModel.dailyCalorieGoal = it },
+        onSavePersonalInfo = { viewModel.calculateNutritionalGoals() },
         onDarkModeChange = { viewModel.isDarkMode = it },
         onUseSystemThemeChange = { viewModel.useSystemTheme = it },
         onApiKeyChange = { viewModel.apiKey = it },
@@ -171,6 +174,7 @@ fun MainScreenContent(
     bodyFat: String,
     targetBodyFat: String,
     goalPace: String,
+    gender: String,
     age: String,
     activityLevel: String,
     isDarkMode: Boolean,
@@ -179,6 +183,7 @@ fun MainScreenContent(
     apiKey: String,
     selectedModel: String,
     onNameChange: (String) -> Unit,
+    onGenderChange: (String) -> Unit,
     onProfileImageChange: (Uri) -> Unit,
     onHeightChange: (String) -> Unit,
     onWeightChange: (String) -> Unit,
@@ -189,6 +194,7 @@ fun MainScreenContent(
     onAgeChange: (String) -> Unit,
     onActivityLevelChange: (String) -> Unit,
     onCalorieGoalChange: (Int) -> Unit,
+    onSavePersonalInfo: () -> Unit,
     onDarkModeChange: (Boolean) -> Unit,
     onUseSystemThemeChange: (Boolean) -> Unit,
     onApiKeyChange: (String) -> Unit,
@@ -398,6 +404,7 @@ fun MainScreenContent(
                     bodyFat = bodyFat,
                     targetBodyFat = targetBodyFat,
                     goalPace = goalPace,
+                    gender = gender,
                     age = age,
                     activityLevel = activityLevel,
                     isExpanded = isPersonalInfoExpanded,
@@ -407,6 +414,7 @@ fun MainScreenContent(
                     carbsGoal = carbsGoal,
                     fatGoal = fatGoal,
                     onNameChange = onNameChange,
+                    onGenderChange = onGenderChange,
                     onProfileImageChange = onProfileImageChange,
                     onHeightChange = onHeightChange,
                     onWeightChange = onWeightChange,
@@ -416,7 +424,8 @@ fun MainScreenContent(
                     onGoalPaceChange = onGoalPaceChange,
                     onAgeChange = onAgeChange,
                     onActivityLevelChange = onActivityLevelChange,
-                    onCalorieGoalChange = onCalorieGoalChange
+                    onCalorieGoalChange = onCalorieGoalChange,
+                    onSavePersonalInfo = onSavePersonalInfo
                 )
             }
             composable(Screen.Settings.route) {
@@ -982,6 +991,7 @@ fun ProfileScreenContent(
     bodyFat: String,
     targetBodyFat: String,
     goalPace: String,
+    gender: String,
     age: String,
     activityLevel: String,
     isExpanded: Boolean,
@@ -991,6 +1001,7 @@ fun ProfileScreenContent(
     carbsGoal: Int,
     fatGoal: Int,
     onNameChange: (String) -> Unit,
+    onGenderChange: (String) -> Unit,
     onProfileImageChange: (Uri) -> Unit,
     onHeightChange: (String) -> Unit,
     onWeightChange: (String) -> Unit,
@@ -1000,7 +1011,8 @@ fun ProfileScreenContent(
     onGoalPaceChange: (String) -> Unit,
     onAgeChange: (String) -> Unit,
     onActivityLevelChange: (String) -> Unit,
-    onCalorieGoalChange: (Int) -> Unit
+    onCalorieGoalChange: (Int) -> Unit,
+    onSavePersonalInfo: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     var isEditing by remember { mutableStateOf(false) }
@@ -1050,18 +1062,23 @@ fun ProfileScreenContent(
                 bodyFat = bodyFat,
                 targetBodyFat = targetBodyFat,
                 goalPace = goalPace,
+                gender = gender,
                 age = age,
                 activityLevel = activityLevel,
                 isExpanded = isExpanded,
                 onExpandedChange = onExpandedChange,
                 isEditing = isEditing,
-                onEditClick = { isEditing = !isEditing },
+                onEditClick = { 
+                    if (isEditing) onSavePersonalInfo()
+                    isEditing = !isEditing 
+                },
                 onHeightChange = onHeightChange,
                 onWeightChange = onWeightChange,
                 onTargetWeightChange = onTargetWeightChange,
                 onBodyFatChange = onBodyFatChange,
                 onTargetBodyFatChange = onTargetBodyFatChange,
                 onGoalPaceChange = onGoalPaceChange,
+                onGenderChange = onGenderChange,
                 onAgeChange = onAgeChange,
                 onActivityLevelChange = onActivityLevelChange
             )
@@ -1175,6 +1192,7 @@ fun PersonalInfoSection(
     bodyFat: String,
     targetBodyFat: String,
     goalPace: String,
+    gender: String,
     age: String,
     activityLevel: String,
     isExpanded: Boolean,
@@ -1187,6 +1205,7 @@ fun PersonalInfoSection(
     onBodyFatChange: (String) -> Unit,
     onTargetBodyFatChange: (String) -> Unit,
     onGoalPaceChange: (String) -> Unit,
+    onGenderChange: (String) -> Unit,
     onAgeChange: (String) -> Unit,
     onActivityLevelChange: (String) -> Unit
 ) {
@@ -1282,20 +1301,97 @@ fun PersonalInfoSection(
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        GenderDropdown(
+                            value = gender,
+                            isEditing = isEditing,
+                            onValueChange = onGenderChange,
+                            modifier = Modifier.weight(1f)
+                        )
                         GoalPaceDropdown(
                             value = goalPace,
                             isEditing = isEditing,
                             onValueChange = onGoalPaceChange,
                             modifier = Modifier.weight(1f)
                         )
-                        ActivityLevelDropdown(
-                            value = activityLevel,
-                            isEditing = isEditing,
-                            onValueChange = onActivityLevelChange,
-                            modifier = Modifier.weight(1f)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ActivityLevelDropdown(
+                        value = activityLevel,
+                        isEditing = isEditing,
+                        onValueChange = onActivityLevelChange,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GenderDropdown(
+    value: String,
+    isEditing: Boolean,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val options = listOf("Male", "Female")
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        Text("Gender", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+        Spacer(modifier = Modifier.height(4.dp))
+        
+        if (isEditing) {
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TextField(
+                    value = value,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                        .fillMaxWidth(),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedIndicatorColor = Color(0xFF006D37)
+                    )
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                ) {
+                    options.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                onValueChange(option)
+                                expanded = false
+                            },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                         )
                     }
                 }
+            }
+        } else {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = value,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -2784,6 +2880,7 @@ fun DashboardScreenPreview() {
             bodyFat = "20.0",
             targetBodyFat = "15.0",
             goalPace = "Moderate",
+            gender = "Male",
             age = "29",
             activityLevel = "Very Active",
             isDarkMode = false,
@@ -2792,6 +2889,7 @@ fun DashboardScreenPreview() {
             apiKey = "",
             selectedModel = "gemini-1.5-flash",
             onNameChange = {},
+            onGenderChange = {},
             onProfileImageChange = {},
             onHeightChange = {},
             onWeightChange = {},
@@ -2802,6 +2900,7 @@ fun DashboardScreenPreview() {
             onAgeChange = {},
             onActivityLevelChange = {},
             onCalorieGoalChange = {},
+            onSavePersonalInfo = {},
             onDarkModeChange = {},
             onUseSystemThemeChange = {},
             onApiKeyChange = {},
@@ -2869,6 +2968,7 @@ fun ProfileScreenPreview() {
             bodyFat = "20.0",
             targetBodyFat = "15.0",
             goalPace = "Moderate",
+            gender = "Male",
             age = "29",
             activityLevel = "Very Active",
             isExpanded = true,
@@ -2878,6 +2978,7 @@ fun ProfileScreenPreview() {
             carbsGoal = 200,
             fatGoal = 65,
             onNameChange = {},
+            onGenderChange = {},
             onProfileImageChange = {},
             onHeightChange = {},
             onWeightChange = {},
@@ -2887,7 +2988,8 @@ fun ProfileScreenPreview() {
             onGoalPaceChange = {},
             onAgeChange = {},
             onActivityLevelChange = {},
-            onCalorieGoalChange = {}
+            onCalorieGoalChange = {},
+            onSavePersonalInfo = {}
         )
     }
 

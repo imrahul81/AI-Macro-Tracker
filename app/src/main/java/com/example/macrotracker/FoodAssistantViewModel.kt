@@ -152,6 +152,14 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             prefs.edit().putString("name", value).apply()
         }
 
+    private var _gender by mutableStateOf(prefs.getString("gender", "Male") ?: "Male")
+    var gender: String
+        get() = _gender
+        set(value) {
+            _gender = value
+            prefs.edit().putString("gender", value).apply()
+        }
+
     private var _profileImageUri by mutableStateOf<Uri?>(
         prefs.getString("profile_image_uri", null)?.let { Uri.parse(it) }
     )
@@ -468,6 +476,48 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
         viewModelScope.launch {
             repository.deleteMeal(mealType, dateTimestamp)
         }
+    }
+
+    fun calculateNutritionalGoals() {
+        val w = weight.toDoubleOrNull() ?: 70.0
+        val h = height.toDoubleOrNull() ?: 170.0
+        val a = age.toIntOrNull() ?: 30
+        val targetW = targetWeight.toDoubleOrNull() ?: w
+
+        // Mifflin-St Jeor BMR
+        val bmr = if (gender == "Male") {
+            (10 * w) + (6.25 * h) - (5 * a) + 5
+        } else {
+            (10 * w) + (6.25 * h) - (5 * a) - 161
+        }
+
+        // TDEE based on activity level
+        val multiplier = when (activityLevel) {
+            "Sedentary" -> 1.2
+            "Lightly active" -> 1.375
+            "Moderately active" -> 1.55
+            "Very active" -> 1.725
+            else -> 1.55
+        }
+        val tdee = bmr * multiplier
+
+        // Goal Adjustment
+        val paceAdjustment = when (goalPace) {
+            "Moderate" -> 250.0
+            "Aggressive" -> 500.0
+            "Extreme" -> 1000.0
+            else -> 250.0
+        }
+
+        val finalCalorieGoal = if (targetW < w) {
+            (tdee - paceAdjustment).coerceAtLeast(bmr * 0.8) // Don't go too low below BMR
+        } else if (targetW > w) {
+            tdee + paceAdjustment
+        } else {
+            tdee
+        }
+
+        dailyCalorieGoal = finalCalorieGoal.toInt()
     }
 }
 
