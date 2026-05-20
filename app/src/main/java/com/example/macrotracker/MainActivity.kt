@@ -11,6 +11,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -192,6 +194,15 @@ fun MainScreenContent(
     val currentDestination = navBackStackEntry?.destination
     val isSettingsScreen = currentDestination?.route == Screen.Settings.route
 
+    val screenOrder = listOf(
+        Screen.Dashboard.route,
+        Screen.LogFood.route,
+        Screen.ReviewMeal.route,
+        Screen.History.route,
+        Screen.Profile.route,
+        Screen.Settings.route
+    )
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = { 
@@ -273,7 +284,43 @@ fun MainScreenContent(
             startDestination = Screen.Dashboard.route,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .padding(innerPadding),
+            enterTransition = {
+                val initialIndex = screenOrder.indexOf(initialState.destination.route)
+                val targetIndex = screenOrder.indexOf(targetState.destination.route)
+                if (targetIndex > initialIndex) {
+                    slideInHorizontally(animationSpec = tween(300), initialOffsetX = { it }) + fadeIn(animationSpec = tween(300))
+                } else {
+                    slideInHorizontally(animationSpec = tween(300), initialOffsetX = { -it }) + fadeIn(animationSpec = tween(300))
+                }
+            },
+            exitTransition = {
+                val initialIndex = screenOrder.indexOf(initialState.destination.route)
+                val targetIndex = screenOrder.indexOf(targetState.destination.route)
+                if (targetIndex > initialIndex) {
+                    slideOutHorizontally(animationSpec = tween(300), targetOffsetX = { -it }) + fadeOut(animationSpec = tween(300))
+                } else {
+                    slideOutHorizontally(animationSpec = tween(300), targetOffsetX = { it }) + fadeOut(animationSpec = tween(300))
+                }
+            },
+            popEnterTransition = {
+                val initialIndex = screenOrder.indexOf(initialState.destination.route)
+                val targetIndex = screenOrder.indexOf(targetState.destination.route)
+                if (targetIndex > initialIndex) {
+                    slideInHorizontally(animationSpec = tween(300), initialOffsetX = { it }) + fadeIn(animationSpec = tween(300))
+                } else {
+                    slideInHorizontally(animationSpec = tween(300), initialOffsetX = { -it }) + fadeIn(animationSpec = tween(300))
+                }
+            },
+            popExitTransition = {
+                val initialIndex = screenOrder.indexOf(initialState.destination.route)
+                val targetIndex = screenOrder.indexOf(targetState.destination.route)
+                if (targetIndex > initialIndex) {
+                    slideOutHorizontally(animationSpec = tween(300), targetOffsetX = { -it }) + fadeOut(animationSpec = tween(300))
+                } else {
+                    slideOutHorizontally(animationSpec = tween(300), targetOffsetX = { it }) + fadeOut(animationSpec = tween(300))
+                }
+            }
         ) {
             composable(Screen.Dashboard.route) {
                 MainDashboardContent(loggedFoods, dailyCalorieGoal, proteinGoal, carbsGoal, fatGoal)
