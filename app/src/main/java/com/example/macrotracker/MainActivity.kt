@@ -2393,7 +2393,7 @@ fun SettingsScreenContent(
     }
 
     if (showModelDialog) {
-        val models = listOf("gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp")
+        val models = listOf("gemini-1.5-flash", "gemini-1.5-pro", "gemini-3-flash-preview")
         AlertDialog(
             onDismissRequest = { showModelDialog = false },
             title = { Text("Select Gemini Model") },
@@ -2887,7 +2887,7 @@ fun DashboardScreenPreview() {
             useSystemTheme = true,
             isFirstTime = false,
             apiKey = "",
-            selectedModel = "gemini-1.5-flash",
+            selectedModel = "gemini-3-flash-preview",
             onNameChange = {},
             onGenderChange = {},
             onProfileImageChange = {},

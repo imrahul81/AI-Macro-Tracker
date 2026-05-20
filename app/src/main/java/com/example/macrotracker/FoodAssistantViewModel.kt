@@ -116,7 +116,7 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             updateGenerativeModel()
         }
 
-    private var _selectedModel by mutableStateOf(prefs.getString("selected_model", "gemini-1.5-flash") ?: "gemini-1.5-flash")
+    private var _selectedModel by mutableStateOf(prefs.getString("selected_model", "gemini-3-flash-preview") ?: "gemini-3-flash-preview")
     var selectedModel: String
         get() = _selectedModel
         set(value) {
@@ -125,15 +125,23 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             updateGenerativeModel()
         }
 
+    init {
+        // Sanitize model name in case an invalid one was stored
+        val validModels = listOf("gemini-1.5-flash", "gemini-1.5-pro", "gemini-3-flash-preview")
+        if (_selectedModel !in validModels) {
+            _selectedModel = "gemini-3-flash-preview"
+        }
+    }
+
     // Note: In a real production app, never hardcode API keys.
     private var generativeModel = GenerativeModel(
-        modelName = _selectedModel,
+        modelName = if (_selectedModel in listOf("gemini-1.5-flash", "gemini-1.5-pro", "gemini-3-flash-preview")) _selectedModel else "gemini-3-flash-preview",
         apiKey = _apiKey
     )
 
     private fun updateGenerativeModel() {
         generativeModel = GenerativeModel(
-            modelName = selectedModel,
+            modelName = if (selectedModel in listOf("gemini-1.5-flash", "gemini-1.5-pro", "gemini-3-flash-preview")) selectedModel else "gemini-3-flash-preview",
             apiKey = apiKey
         )
     }
