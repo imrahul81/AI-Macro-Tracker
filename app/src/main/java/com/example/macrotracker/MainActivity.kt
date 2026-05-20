@@ -139,6 +139,8 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         onUseSystemThemeChange = { viewModel.useSystemTheme = it },
         onApiKeyChange = { viewModel.apiKey = it },
         onModelChange = { viewModel.selectedModel = it },
+        isPersonalInfoExpanded = viewModel.isPersonalInfoExpanded,
+        onPersonalInfoExpandedChange = { viewModel.isPersonalInfoExpanded = it },
         remindersEnabled = viewModel.remindersEnabled,
         onRemindersEnabledChange = { viewModel.remindersEnabled = it },
         loggedFoods = loggedFoods,
@@ -191,6 +193,8 @@ fun MainScreenContent(
     onUseSystemThemeChange: (Boolean) -> Unit,
     onApiKeyChange: (String) -> Unit,
     onModelChange: (String) -> Unit,
+    isPersonalInfoExpanded: Boolean,
+    onPersonalInfoExpandedChange: (Boolean) -> Unit,
     remindersEnabled: Boolean,
     onRemindersEnabledChange: (Boolean) -> Unit,
     loggedFoods: List<FoodEntity>,
@@ -396,6 +400,8 @@ fun MainScreenContent(
                     goalPace = goalPace,
                     age = age,
                     activityLevel = activityLevel,
+                    isExpanded = isPersonalInfoExpanded,
+                    onExpandedChange = onPersonalInfoExpandedChange,
                     dailyCalorieGoal = dailyCalorieGoal,
                     proteinGoal = proteinGoal,
                     carbsGoal = carbsGoal,
@@ -978,6 +984,8 @@ fun ProfileScreenContent(
     goalPace: String,
     age: String,
     activityLevel: String,
+    isExpanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     dailyCalorieGoal: Int,
     proteinGoal: Int,
     carbsGoal: Int,
@@ -1044,6 +1052,8 @@ fun ProfileScreenContent(
                 goalPace = goalPace,
                 age = age,
                 activityLevel = activityLevel,
+                isExpanded = isExpanded,
+                onExpandedChange = onExpandedChange,
                 isEditing = isEditing,
                 onEditClick = { isEditing = !isEditing },
                 onHeightChange = onHeightChange,
@@ -1167,6 +1177,8 @@ fun PersonalInfoSection(
     goalPace: String,
     age: String,
     activityLevel: String,
+    isExpanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     isEditing: Boolean,
     onEditClick: () -> Unit,
     onHeightChange: (String) -> Unit,
@@ -1186,86 +1198,104 @@ fun PersonalInfoSection(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onExpandedChange(!isExpanded) },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Personal Info", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                TextButton(onClick = onEditClick) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (isExpanded) "Collapse" else "Expand",
+                        tint = Color.Gray
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Personal Info", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+                TextButton(onClick = {
+                    if (!isExpanded) onExpandedChange(true)
+                    onEditClick()
+                }) {
                     Text(if (isEditing) "Save" else "Edit", color = Color(0xFF006D37), fontWeight = FontWeight.Bold)
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                EditableInfoItem(
-                    label = "Height",
-                    value = height,
-                    unit = "cm",
-                    isEditing = isEditing,
-                    onValueChange = onHeightChange,
-                    modifier = Modifier.weight(1f)
-                )
-                EditableInfoItem(
-                    label = "Weight",
-                    value = weight,
-                    unit = "kg",
-                    isEditing = isEditing,
-                    onValueChange = onWeightChange,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                EditableInfoItem(
-                    label = "Target Weight",
-                    value = targetWeight,
-                    unit = "kg",
-                    isEditing = isEditing,
-                    onValueChange = onTargetWeightChange,
-                    modifier = Modifier.weight(1f)
-                )
-                EditableInfoItem(
-                    label = "Body Fat",
-                    value = bodyFat,
-                    unit = "%",
-                    isEditing = isEditing,
-                    onValueChange = onBodyFatChange,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                EditableInfoItem(
-                    label = "Target Body Fat",
-                    value = targetBodyFat,
-                    unit = "%",
-                    isEditing = isEditing,
-                    onValueChange = onTargetBodyFatChange,
-                    modifier = Modifier.weight(1f)
-                )
-                EditableInfoItem(
-                    label = "Age",
-                    value = age,
-                    unit = "years",
-                    isEditing = isEditing,
-                    onValueChange = onAgeChange,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                GoalPaceDropdown(
-                    value = goalPace,
-                    isEditing = isEditing,
-                    onValueChange = onGoalPaceChange,
-                    modifier = Modifier.weight(1f)
-                )
-                ActivityLevelDropdown(
-                    value = activityLevel,
-                    isEditing = isEditing,
-                    onValueChange = onActivityLevelChange,
-                    modifier = Modifier.weight(1f)
-                )
+            
+            AnimatedVisibility(visible = isExpanded) {
+                Column {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        EditableInfoItem(
+                            label = "Height",
+                            value = height,
+                            unit = "cm",
+                            isEditing = isEditing,
+                            onValueChange = onHeightChange,
+                            modifier = Modifier.weight(1f)
+                        )
+                        EditableInfoItem(
+                            label = "Weight",
+                            value = weight,
+                            unit = "kg",
+                            isEditing = isEditing,
+                            onValueChange = onWeightChange,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        EditableInfoItem(
+                            label = "Target Weight",
+                            value = targetWeight,
+                            unit = "kg",
+                            isEditing = isEditing,
+                            onValueChange = onTargetWeightChange,
+                            modifier = Modifier.weight(1f)
+                        )
+                        EditableInfoItem(
+                            label = "Age",
+                            value = age,
+                            unit = "years",
+                            isEditing = isEditing,
+                            onValueChange = onAgeChange,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        EditableInfoItem(
+                            label = "Body Fat",
+                            value = bodyFat,
+                            unit = "%",
+                            isEditing = isEditing,
+                            onValueChange = onBodyFatChange,
+                            modifier = Modifier.weight(1f)
+                        )
+                        EditableInfoItem(
+                            label = "Target Body Fat",
+                            value = targetBodyFat,
+                            unit = "%",
+                            isEditing = isEditing,
+                            onValueChange = onTargetBodyFatChange,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        GoalPaceDropdown(
+                            value = goalPace,
+                            isEditing = isEditing,
+                            onValueChange = onGoalPaceChange,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ActivityLevelDropdown(
+                            value = activityLevel,
+                            isEditing = isEditing,
+                            onValueChange = onActivityLevelChange,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
             }
         }
     }
@@ -2776,6 +2806,8 @@ fun DashboardScreenPreview() {
             onUseSystemThemeChange = {},
             onApiKeyChange = {},
             onModelChange = {},
+            isPersonalInfoExpanded = true,
+            onPersonalInfoExpandedChange = {},
             remindersEnabled = true,
             onRemindersEnabledChange = {},
             loggedFoods = sampleFoodEntities,
@@ -2839,6 +2871,8 @@ fun ProfileScreenPreview() {
             goalPace = "Moderate",
             age = "29",
             activityLevel = "Very Active",
+            isExpanded = true,
+            onExpandedChange = {},
             dailyCalorieGoal = 2000,
             proteinGoal = 150,
             carbsGoal = 200,

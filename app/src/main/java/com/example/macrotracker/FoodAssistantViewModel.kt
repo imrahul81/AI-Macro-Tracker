@@ -274,6 +274,14 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             prefs.edit().putBoolean("is_first_time", value).apply()
         }
 
+    private var _isPersonalInfoExpanded by mutableStateOf(prefs.getBoolean("is_personal_info_expanded", true))
+    var isPersonalInfoExpanded: Boolean
+        get() = _isPersonalInfoExpanded
+        set(value) {
+            _isPersonalInfoExpanded = value
+            prefs.edit().putBoolean("is_personal_info_expanded", value).apply()
+        }
+
     private fun scheduleAllReminders() {
         val workManager = WorkManager.getInstance(getApplication())
         
