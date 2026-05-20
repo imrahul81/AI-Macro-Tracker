@@ -1875,6 +1875,7 @@ fun SettingsScreenContent(
     onRemindersEnabledChange: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
+    var showApiKeyDialog by remember { mutableStateOf(false) }
     var showModelDialog by remember { mutableStateOf(false) }
     var driveBackupEnabled by remember { mutableStateOf(false) }
 
@@ -1930,19 +1931,16 @@ fun SettingsScreenContent(
             item {
                 SettingsSection(title = "AI Configuration") {
                     SettingsClickItem(
-                        label = "LLM Model",
-                        value = selectedModel,
-                        icon = Icons.Default.SmartToy,
-                        onClick = { showModelDialog = true }
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-                    SettingsInputItem(
-                        label = "API Key",
-                        value = apiKey,
-                        onValueChange = onApiKeyChange,
+                        label = "Gemini API Key",
+                        value = if (apiKey.isEmpty()) "Not Set" else "••••••••",
                         icon = Icons.Default.VpnKey,
-                        placeholder = "Enter Gemini API Key",
-                        visualTransformation = PasswordVisualTransformation()
+                        onClick = { showApiKeyDialog = true }
+                    )
+                    SettingsClickItem(
+                        label = "Model",
+                        value = selectedModel,
+                        icon = Icons.Default.AutoAwesome,
+                        onClick = { showModelDialog = true }
                     )
                 }
             }
@@ -1981,24 +1979,71 @@ fun SettingsScreenContent(
         }
     }
 
-    if (showModelDialog) {
+    if (showApiKeyDialog) {
+        var tempApiKey by remember { mutableStateOf(apiKey) }
         AlertDialog(
-            onDismissRequest = { showModelDialog = false },
-            title = { Text("Select LLM Model") },
+            onDismissRequest = { showApiKeyDialog = false },
+            title = { Text("Enter Gemini API Key") },
             text = {
                 Column {
-                    listOf("gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp").forEach { model ->
+                    Text(
+                        "Your key is stored securely on your device.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    TextField(
+                        value = tempApiKey,
+                        onValueChange = { tempApiKey = it },
+                        placeholder = { Text("Paste your API Key here") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onApiKeyChange(tempApiKey)
+                    showApiKeyDialog = false
+                }) {
+                    Text("Save", color = Color(0xFF006D37), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showApiKeyDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showModelDialog) {
+        val models = listOf("gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp")
+        AlertDialog(
+            onDismissRequest = { showModelDialog = false },
+            title = { Text("Select Gemini Model") },
+            text = {
+                Column {
+                    models.forEach { model ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
+                                .clickable { 
                                     onModelChange(model)
                                     showModelDialog = false
                                 }
-                                .padding(vertical = 12.dp),
+                                .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            RadioButton(selected = selectedModel == model, onClick = null)
+                            RadioButton(
+                                selected = (model == selectedModel),
+                                onClick = null
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(model)
                         }
@@ -2007,7 +2052,7 @@ fun SettingsScreenContent(
             },
             confirmButton = {
                 TextButton(onClick = { showModelDialog = false }) {
-                    Text("Cancel")
+                    Text("Close")
                 }
             }
         )
@@ -2066,6 +2111,7 @@ fun SettingsToggleItem(
             colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF2ECC71))
         )
     }
+
 }
 
 @Composable
@@ -2138,6 +2184,7 @@ fun SettingsInputItem(
             shape = RoundedCornerShape(12.dp)
         )
     }
+
 }
 
 @Composable
@@ -2300,6 +2347,7 @@ fun MacroRing(
             style = Stroke(width = strokeWidth.toPx(), cap = StrokeCap.Round)
         )
     }
+
 }
 
 @Composable
@@ -2482,6 +2530,7 @@ fun DashboardScreenPreview() {
             onDateSelected = {}
         )
     }
+
 }
 
 @Preview(showBackground = true)
@@ -2496,6 +2545,7 @@ fun LogFoodScreenPreview() {
             onResetState = {}
         )
     }
+
 }
 
 @Preview(showBackground = true)
@@ -2509,6 +2559,7 @@ fun HistoryScreenPreview() {
             onDateSelected = {}
         )
     }
+
 }
 
 @Preview(showBackground = true)
@@ -2535,4 +2586,5 @@ fun ProfileScreenPreview() {
             onCalorieGoalChange = {}
         )
     }
+
 }

@@ -95,10 +95,28 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
         _selectedHistoryDate.value = timestamp
     }
 
+    private var _apiKey by mutableStateOf(prefs.getString("api_key", BuildConfig.GEMINI_API_KEY) ?: BuildConfig.GEMINI_API_KEY)
+    var apiKey: String
+        get() = _apiKey
+        set(value) {
+            _apiKey = value
+            prefs.edit().putString("api_key", value).apply()
+            updateGenerativeModel()
+        }
+
+    private var _selectedModel by mutableStateOf(prefs.getString("selected_model", "gemini-1.5-flash") ?: "gemini-1.5-flash")
+    var selectedModel: String
+        get() = _selectedModel
+        set(value) {
+            _selectedModel = value
+            prefs.edit().putString("selected_model", value).apply()
+            updateGenerativeModel()
+        }
+
     // Note: In a real production app, never hardcode API keys.
     private var generativeModel = GenerativeModel(
-        modelName = prefs.getString("selected_model", "gemini-1.5-flash") ?: "gemini-1.5-flash",
-        apiKey = prefs.getString("api_key", BuildConfig.GEMINI_API_KEY) ?: BuildConfig.GEMINI_API_KEY
+        modelName = _selectedModel,
+        apiKey = _apiKey
     )
 
     private fun updateGenerativeModel() {
@@ -181,24 +199,6 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
             prefs.edit().putBoolean("is_dark_mode", value).apply()
             // When user manually toggles, we disable "follow system"
             useSystemTheme = false
-        }
-
-    private var _apiKey by mutableStateOf(encryptedPrefs.getString("api_key", BuildConfig.GEMINI_API_KEY) ?: BuildConfig.GEMINI_API_KEY)
-    var apiKey: String
-        get() = _apiKey
-        set(value) {
-            _apiKey = value
-            encryptedPrefs.edit().putString("api_key", value).apply()
-            updateGenerativeModel()
-        }
-
-    private var _selectedModel by mutableStateOf(prefs.getString("selected_model", "gemini-1.5-flash") ?: "gemini-1.5-flash")
-    var selectedModel: String
-        get() = _selectedModel
-        set(value) {
-            _selectedModel = value
-            prefs.edit().putString("selected_model", value).apply()
-            updateGenerativeModel()
         }
 
     private var _dailyCalorieGoal by mutableStateOf(prefs.getInt("daily_calorie_goal", 2000))
@@ -309,6 +309,10 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
         uiState = FoodAssistantUiState.Loading
         viewModelScope.launch {
             try {
+                if (apiKey.isBlank()) {
+                    throw Exception("API Key is missing. Please enter your Gemini API Key in Settings.")
+                }
+
                 val prompt = """
                     You are a professional nutritionist assistant. 
                     Analyze the following meal description and provide the nutritional information in JSON format.
