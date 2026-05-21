@@ -1,4 +1,4 @@
-package com.example.macrotracker
+package com.rahul.macrotracker
 
 import android.app.Application
 import android.content.Context
@@ -16,11 +16,11 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
-import com.example.macrotracker.data.FoodDatabase
-import com.example.macrotracker.data.FoodEntity
-import com.example.macrotracker.data.FoodRepository
+import com.rahul.macrotracker.data.FoodDatabase
+import com.rahul.macrotracker.data.FoodEntity
+import com.rahul.macrotracker.data.FoodRepository
 import com.google.ai.client.generativeai.GenerativeModel
-import com.example.macrotracker.BuildConfig
+import com.rahul.macrotracker.BuildConfig
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

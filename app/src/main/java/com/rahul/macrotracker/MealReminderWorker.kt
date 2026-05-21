@@ -1,4 +1,4 @@
-package com.example.macrotracker
+package com.rahul.macrotracker
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,8 +8,8 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.example.macrotracker.data.FoodDatabase
-import com.example.macrotracker.data.FoodRepository
+import com.rahul.macrotracker.data.FoodDatabase
+import com.rahul.macrotracker.data.FoodRepository
 import kotlinx.coroutines.flow.first
 
 class MealReminderWorker(

@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.macrotracker"
+    namespace = "com.rahul.macrotracker"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -17,7 +17,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.macrotracker"
+        applicationId = "com.rahul.macrotracker"
         minSdk = 35
         targetSdk = 36
         versionCode = 1

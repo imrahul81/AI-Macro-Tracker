@@ -1,4 +1,4 @@
-package com.example.macrotracker
+package com.rahul.macrotracker
 
 import android.content.Intent
 import android.net.Uri
@@ -61,8 +61,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import com.example.macrotracker.data.FoodEntity
-import com.example.macrotracker.ui.theme.MacroTrackerTheme
+import com.rahul.macrotracker.data.FoodEntity
+import com.rahul.macrotracker.ui.theme.MacroTrackerTheme
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -1179,7 +1179,7 @@ fun ProfileHeader(name: String, imageUri: Uri?, onEditImage: () -> Unit, isEditi
             shape = CircleShape
         ) {
             Text(
-                "Pro Member",
+                "Meal Log",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 color = Color.White,
                 style = MaterialTheme.typography.labelLarge,
@@ -1689,45 +1689,6 @@ fun MacroGoalBadge(label: String, value: String, bgColor: Color, textColor: Colo
     }
 }
 
-@Composable
-fun AccountSection() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(vertical = 8.dp)) {
-            Text(
-                "Account",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            AccountItem(label = "Email Address", value = "alex.j@example.com")
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.surfaceVariant)
-            AccountItem(label = "Password", value = "••••••••••••")
-        }
-    }
-}
-
-@Composable
-fun AccountItem(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.bodyLarge)
-        }
-        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogFoodScreenContent(
@@ -1868,6 +1829,27 @@ fun LogFoodScreenContent(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        if (uiState is FoodAssistantUiState.Error) {
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        uiState.message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        }
 
         InfoCard(
             icon = Icons.Default.Lightbulb,
@@ -2278,10 +2260,6 @@ fun SettingsScreenContent(
                         subtitle = "Get notified if you forget to log meals"
                     )
                 }
-            }
-
-            item {
-                AccountSection()
             }
 
             item {

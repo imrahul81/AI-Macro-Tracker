@@ -1,4 +1,4 @@
-package com.example.macrotracker.data
+package com.rahul.macrotracker.data
 
 import kotlinx.coroutines.flow.Flow
 import java.util.Calendar

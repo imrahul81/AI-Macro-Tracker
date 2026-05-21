@@ -1,4 +1,4 @@
-package com.example.macrotracker
+package com.rahul.macrotracker
 
 import org.junit.Test
 

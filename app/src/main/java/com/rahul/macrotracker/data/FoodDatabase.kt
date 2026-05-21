@@ -1,4 +1,4 @@
-package com.example.macrotracker.data
+package com.rahul.macrotracker.data
 
 import android.content.Context
 import androidx.room.*

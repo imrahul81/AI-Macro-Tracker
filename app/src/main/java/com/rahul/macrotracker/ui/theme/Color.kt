@@ -1,4 +1,4 @@
-package com.example.macrotracker.ui.theme
+package com.rahul.macrotracker.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
