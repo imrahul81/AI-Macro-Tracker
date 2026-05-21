@@ -509,19 +509,26 @@ fun WelcomeScreenContent(onGetStarted: () -> Unit) {
 @Composable
 fun FeatureRow(icon: ImageVector, title: String, description: String) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.Top
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(56.dp)
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Icon(
+                icon, 
+                contentDescription = null, 
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
+            )
         }
         
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(24.dp))
         
         Column {
             Text(
@@ -556,16 +563,15 @@ fun MainDashboardContent(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item {
             CalorieOverview(totalCalories, calorieGoal)
         }
         item {
-            Spacer(modifier = Modifier.height(24.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 MacroCard(
                     label = "Protein",
@@ -657,11 +663,12 @@ fun HistoryScreenContent(foods: List<FoodEntity>, selectedDate: Long, calorieGoa
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item {
             Column {
                 Text("History", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1021,7 +1028,7 @@ fun ProfileScreenContent(
             .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(32.dp)
     ) {
         item {
             ProfileHeader(
@@ -1540,7 +1547,7 @@ fun EditableInfoItem(
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    focusedIndicatorColor = Color(0xFF006D37)
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary
                 )
             )
         } else {
@@ -1820,10 +1827,12 @@ fun LogFoodScreenContent(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = { onAnalyzeMeal(mealInput) },
-                    modifier = Modifier.align(Alignment.End),
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .height(56.dp),
                     enabled = uiState !is FoodAssistantUiState.Loading,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(24.dp)
+                    shape = RoundedCornerShape(28.dp)
                 ) {
                     if (uiState is FoodAssistantUiState.Loading) {
                         CircularProgressIndicator(
@@ -2555,14 +2564,16 @@ fun CalorieOverview(consumed: Int, goal: Int) {
     val arcColor = if (isOverBudget) Color(0xFFC0392B) else MaterialTheme.colorScheme.primary
     
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(contentAlignment = Alignment.Center) {
             MacroRing(
                 progress = progress,
                 color = arcColor,
-                size = 216.dp,
+                size = 240.dp,
                 strokeWidth = 24.dp,
                 inactiveColor = MaterialTheme.colorScheme.surfaceVariant
             )
@@ -2571,23 +2582,23 @@ fun CalorieOverview(consumed: Int, goal: Int) {
                     String.format(Locale.getDefault(), "%, d", consumed),
                     style = MaterialTheme.typography.displayLarge,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 48.sp,
+                    fontSize = 56.sp,
                     color = if (isOverBudget) Color(0xFFC0392B) else MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     "/ $goal KCAL",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Surface(
                     color = arcColor.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(24.dp)
                 ) {
                     Text(
                         if (isOverBudget) "OVER BUDGET" else "$percentage% GOAL",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         color = arcColor,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold
@@ -2605,26 +2616,36 @@ fun MacroCard(label: String, value: String, progress: Float, color: Color, modif
 
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(16.dp)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             MacroRing(
                 progress = progress.coerceIn(0f, 1f),
                 color = displayColor,
-                size = 60.dp,
+                size = 64.dp,
                 strokeWidth = 8.dp,
                 inactiveColor = MaterialTheme.colorScheme.surfaceVariant
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
-            Text(value, style = MaterialTheme.typography.titleLarge, color = displayColor, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                label, 
+                style = MaterialTheme.typography.labelLarge, 
+                color = MaterialTheme.colorScheme.onSurfaceVariant, 
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                value, 
+                style = MaterialTheme.typography.titleLarge, 
+                color = displayColor, 
+                fontWeight = FontWeight.ExtraBold
+            )
         }
     }
 }
@@ -2666,7 +2687,7 @@ fun FoodListItemEntity(foodEntity: FoodEntity) {
     ) {
         Row(
             modifier = Modifier
-                .padding(12.dp)
+                .padding(16.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -2683,12 +2704,13 @@ fun FoodListItemEntity(foodEntity: FoodEntity) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     foodEntity.name,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     "${foodEntity.mealType} • ${foodEntity.time}",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -2696,12 +2718,12 @@ fun FoodListItemEntity(foodEntity: FoodEntity) {
                 Text(
                     "${foodEntity.calories}",
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color(0xFF446180),
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     "kcal",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
