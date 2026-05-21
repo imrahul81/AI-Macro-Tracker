@@ -17,6 +17,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -51,6 +53,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -221,13 +224,19 @@ fun MainScreenContent(
     val isWelcomeScreen = currentDestination?.route == Screen.Welcome.route
     val isSettingsScreen = currentDestination?.route == Screen.Settings.route
 
+    val pagerScreens = listOf(
+        Screen.Dashboard,
+        Screen.LogFood,
+        Screen.History,
+        Screen.Profile
+    )
+    val pagerState = rememberPagerState(pageCount = { pagerScreens.size })
+    val coroutineScope = rememberCoroutineScope()
+
     val screenOrder = listOf(
         Screen.Welcome.route,
-        Screen.Dashboard.route,
-        Screen.LogFood.route,
+        "main_tabs",
         Screen.ReviewMeal.route,
-        Screen.History.route,
-        Screen.Profile.route,
         Screen.Settings.route
     )
 
@@ -239,12 +248,17 @@ fun MainScreenContent(
                     profileImageUri = profileImageUri,
                     onSettingsClick = { navController.navigate(Screen.Settings.route) },
                     onProfileClick = {
-                        navController.navigate(Screen.Profile.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(pagerScreens.indexOf(Screen.Profile))
+                        }
+                        if (currentDestination?.route != "main_tabs") {
+                            navController.navigate("main_tabs") {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
                         }
                     }
                 ) 
@@ -256,24 +270,23 @@ fun MainScreenContent(
                     containerColor = MaterialTheme.colorScheme.surface,
                     tonalElevation = 8.dp
                 ) {
-                    val screens = listOf(
-                        Screen.Dashboard,
-                        Screen.LogFood,
-                        Screen.History,
-                        Screen.Profile
-                    )
-                    screens.forEach { screen ->
+                    pagerScreens.forEachIndexed { index, screen ->
                         NavigationBarItem(
                             icon = { Icon(screen.icon, contentDescription = screen.label) },
                             label = { Text(screen.label) },
-                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                            selected = currentDestination?.route == "main_tabs" && pagerState.currentPage == index,
                             onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                                if (currentDestination?.route != "main_tabs") {
+                                    navController.navigate("main_tabs") {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                }
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(index)
                                 }
                             },
                             colors = NavigationBarItemDefaults.colors(
@@ -291,7 +304,7 @@ fun MainScreenContent(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = if (isFirstTime) Screen.Welcome.route else Screen.Dashboard.route,
+            startDestination = if (isFirstTime) Screen.Welcome.route else "main_tabs",
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -336,25 +349,65 @@ fun MainScreenContent(
                 WelcomeScreenContent(
                     onGetStarted = {
                         onFirstTimeFinished()
-                        navController.navigate(Screen.Dashboard.route) {
+                        navController.navigate("main_tabs") {
                             popUpTo(Screen.Welcome.route) { inclusive = true }
                         }
                     }
                 )
             }
-            composable(Screen.Dashboard.route) {
-                MainDashboardContent(loggedFoods, dailyCalorieGoal, proteinGoal, carbsGoal, fatGoal)
-            }
-            composable(Screen.LogFood.route) {
-                LogFoodScreenContent(
-                    uiState = uiState,
-                    recentMeals = recentMeals,
-                    onAnalyzeMeal = onAnalyzeMeal,
-                    onSuccess = {
-                        navController.navigate(Screen.ReviewMeal.route)
-                    },
-                    onResetState = onResetState
-                )
+            composable("main_tabs") {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    beyondViewportPageCount = 1
+                ) { page ->
+                    when (pagerScreens[page]) {
+                        Screen.Dashboard -> MainDashboardContent(loggedFoods, dailyCalorieGoal, proteinGoal, carbsGoal, fatGoal)
+                        Screen.LogFood -> LogFoodScreenContent(
+                            uiState = uiState,
+                            recentMeals = recentMeals,
+                            onAnalyzeMeal = onAnalyzeMeal,
+                            onSuccess = {
+                                navController.navigate(Screen.ReviewMeal.route)
+                            },
+                            onResetState = onResetState
+                        )
+                        Screen.History -> HistoryScreenContent(historyFoods, historyDate, dailyCalorieGoal, onDateSelected, onDeleteMeal)
+                        Screen.Profile -> ProfileScreenContent(
+                            name = name,
+                            profileImageUri = profileImageUri,
+                            height = height,
+                            weight = weight,
+                            targetWeight = targetWeight,
+                            bodyFat = bodyFat,
+                            targetBodyFat = targetBodyFat,
+                            goalPace = goalPace,
+                            gender = gender,
+                            age = age,
+                            activityLevel = activityLevel,
+                            isExpanded = isPersonalInfoExpanded,
+                            onExpandedChange = onPersonalInfoExpandedChange,
+                            dailyCalorieGoal = dailyCalorieGoal,
+                            proteinGoal = proteinGoal,
+                            carbsGoal = carbsGoal,
+                            fatGoal = fatGoal,
+                            onNameChange = onNameChange,
+                            onGenderChange = onGenderChange,
+                            onProfileImageChange = onProfileImageChange,
+                            onHeightChange = onHeightChange,
+                            onWeightChange = onWeightChange,
+                            onTargetWeightChange = onTargetWeightChange,
+                            onBodyFatChange = onBodyFatChange,
+                            onTargetBodyFatChange = onTargetBodyFatChange,
+                            onGoalPaceChange = onGoalPaceChange,
+                            onAgeChange = onAgeChange,
+                            onActivityLevelChange = onActivityLevelChange,
+                            onCalorieGoalChange = onCalorieGoalChange,
+                            onSavePersonalInfo = onSavePersonalInfo
+                        )
+                        else -> {}
+                    }
+                }
             }
             composable(Screen.ReviewMeal.route) {
                 if (uiState is FoodAssistantUiState.Success) {
@@ -362,8 +415,8 @@ fun MainScreenContent(
                         macro = uiState.macro,
                         onConfirmMeal = {
                             onConfirmMeal(it)
-                            navController.navigate(Screen.Dashboard.route) {
-                                popUpTo(Screen.Dashboard.route) { inclusive = true }
+                            navController.navigate("main_tabs") {
+                                popUpTo("main_tabs") { inclusive = true }
                             }
                         },
                         onBack = {
@@ -372,43 +425,6 @@ fun MainScreenContent(
                         }
                     )
                 }
-            }
-            composable(Screen.History.route) {
-                HistoryScreenContent(historyFoods, historyDate, dailyCalorieGoal, onDateSelected, onDeleteMeal)
-            }
-            composable(Screen.Profile.route) {
-                ProfileScreenContent(
-                    name = name,
-                    profileImageUri = profileImageUri,
-                    height = height,
-                    weight = weight,
-                    targetWeight = targetWeight,
-                    bodyFat = bodyFat,
-                    targetBodyFat = targetBodyFat,
-                    goalPace = goalPace,
-                    gender = gender,
-                    age = age,
-                    activityLevel = activityLevel,
-                    isExpanded = isPersonalInfoExpanded,
-                    onExpandedChange = onPersonalInfoExpandedChange,
-                    dailyCalorieGoal = dailyCalorieGoal,
-                    proteinGoal = proteinGoal,
-                    carbsGoal = carbsGoal,
-                    fatGoal = fatGoal,
-                    onNameChange = onNameChange,
-                    onGenderChange = onGenderChange,
-                    onProfileImageChange = onProfileImageChange,
-                    onHeightChange = onHeightChange,
-                    onWeightChange = onWeightChange,
-                    onTargetWeightChange = onTargetWeightChange,
-                    onBodyFatChange = onBodyFatChange,
-                    onTargetBodyFatChange = onTargetBodyFatChange,
-                    onGoalPaceChange = onGoalPaceChange,
-                    onAgeChange = onAgeChange,
-                    onActivityLevelChange = onActivityLevelChange,
-                    onCalorieGoalChange = onCalorieGoalChange,
-                    onSavePersonalInfo = onSavePersonalInfo
-                )
             }
             composable(Screen.Settings.route) {
                 SettingsScreenContent(
