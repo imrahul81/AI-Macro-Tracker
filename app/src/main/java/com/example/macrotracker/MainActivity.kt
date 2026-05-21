@@ -278,7 +278,7 @@ fun MainScreenContent(
                             },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = Color.White,
-                                selectedTextColor = Color(0xFF006D37),
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
                                 indicatorColor = Color(0xFF2ECC71),
                                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -455,13 +455,13 @@ fun WelcomeScreenContent(onGetStarted: () -> Unit) {
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            color = Color(0xFF006D37)
+            color = MaterialTheme.colorScheme.primary
         )
         
         Text(
             "Your intelligent companion for a healthier lifestyle",
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         
@@ -496,7 +496,7 @@ fun WelcomeScreenContent(onGetStarted: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006D37)),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             shape = RoundedCornerShape(28.dp)
         ) {
             Text("Get Started", fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -515,10 +515,10 @@ fun FeatureRow(icon: ImageVector, title: String, description: String) {
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .background(Color(0xFF2ECC71).copy(alpha = 0.1f), CircleShape),
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = Color(0xFF006D37))
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         }
         
         Spacer(modifier = Modifier.width(16.dp))
@@ -532,7 +532,7 @@ fun FeatureRow(icon: ImageVector, title: String, description: String) {
             Text(
                 description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -603,7 +603,7 @@ fun MainDashboardContent(
                 Text(
                     "No meals logged today yet. Tap the + button to start!",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
             }
@@ -661,7 +661,7 @@ fun HistoryScreenContent(foods: List<FoodEntity>, selectedDate: Long, calorieGoa
     ) {
         item {
             Column {
-                Text("History", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                Text("History", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -708,7 +708,7 @@ fun HistoryScreenContent(foods: List<FoodEntity>, selectedDate: Long, calorieGoa
                     calories = totalCalories,
                     foods = mealFoods,
                     icon = icon,
-                    iconColor = if (mealFoods.isNotEmpty()) Color(0xFF2ECC71) else MaterialTheme.colorScheme.surfaceVariant,
+                    iconColor = if (mealFoods.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                     isFirst = index == 0,
                     isLast = index == mealTypes.size - 1,
                     onDelete = { onDeleteMeal(mealType, selectedDate) }
@@ -739,13 +739,13 @@ fun HistorySummaryCard(foods: List<FoodEntity>, goal: Int) {
             Box(contentAlignment = Alignment.Center) {
                 MacroRing(
                     progress = progress,
-                    color = if (isOverBudget) Color(0xFFC0392B) else Color(0xFF006D37),
+                    color = if (isOverBudget) Color(0xFFC0392B) else MaterialTheme.colorScheme.primary,
                     size = 100.dp,
                     strokeWidth = 10.dp,
                     inactiveColor = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(if (isOverBudget) "OVER" else "LEFT", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(if (isOverBudget) "OVER" else "LEFT", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         if (isOverBudget) (consumed - goal).toString() else left.toString(),
                         style = MaterialTheme.typography.titleLarge,
@@ -758,13 +758,13 @@ fun HistorySummaryCard(foods: List<FoodEntity>, goal: Int) {
             Spacer(modifier = Modifier.width(16.dp))
             
             Column {
-                Text("EATEN", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text("EATEN", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp)) {
                             append(String.format(Locale.getDefault(), "%, d", consumed))
                         }
-                        withStyle(SpanStyle(fontSize = 12.sp, color = Color.Gray)) {
+                        withStyle(SpanStyle(fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)) {
                             append(" kcal")
                         }
                     }
@@ -772,13 +772,13 @@ fun HistorySummaryCard(foods: List<FoodEntity>, goal: Int) {
             }
 
             Column {
-                Text("GOAL", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text("GOAL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp)) {
                             append(String.format(Locale.getDefault(), "%, d", goal))
                         }
-                        withStyle(SpanStyle(fontSize = 12.sp, color = Color.Gray)) {
+                        withStyle(SpanStyle(fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)) {
                             append(" kcal")
                         }
                     }
@@ -875,14 +875,14 @@ fun TimelineItem(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(mealType, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text(time, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            Text(time, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text(
                             buildAnnotatedString {
                                 withStyle(SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFF446180))) {
                                     append(calories.toString())
                                 }
-                                withStyle(SpanStyle(fontSize = 12.sp, color = Color.Gray)) {
+                                withStyle(SpanStyle(fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)) {
                                     append(" kcal")
                                 }
                             }
@@ -916,7 +916,7 @@ fun TimelineItem(
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(food.name, style = MaterialTheme.typography.bodyMedium)
                                 }
-                                Text("${food.calories} kcal", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                Text("${food.calories} kcal", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Spacer(modifier = Modifier.height(8.dp))
                         }
@@ -937,7 +937,7 @@ fun TimelineItem(
                          Icon(
                             Icons.Default.KeyboardArrowDown,
                             contentDescription = "Expand",
-                            tint = Color.Gray,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.align(Alignment.End)
                         )
                     }
@@ -957,7 +957,7 @@ fun MacroBadge(label: String, value: String, bgColor: Color, textColor: Color) {
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = textColor)
         }
     }
@@ -1087,7 +1087,7 @@ fun ProfileHeader(name: String, imageUri: Uri?, onEditImage: () -> Unit, isEditi
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surface)
                     .padding(4.dp)
-                    .background(Color(0xFF2ECC71), CircleShape)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
                     .padding(2.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surface)
@@ -1113,7 +1113,7 @@ fun ProfileHeader(name: String, imageUri: Uri?, onEditImage: () -> Unit, isEditi
                     .size(32.dp)
                     .clickable { onEditImage() },
                 shape = CircleShape,
-                color = Color(0xFF006D37),
+                color = MaterialTheme.colorScheme.primary,
                 shadowElevation = 4.dp
             ) {
                 Icon(
@@ -1139,7 +1139,7 @@ fun ProfileHeader(name: String, imageUri: Uri?, onEditImage: () -> Unit, isEditi
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color(0xFF006D37)
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary
                 )
             )
         } else {
@@ -1152,7 +1152,7 @@ fun ProfileHeader(name: String, imageUri: Uri?, onEditImage: () -> Unit, isEditi
         
         Spacer(modifier = Modifier.height(4.dp))
         Surface(
-            color = Color(0xFF2ECC71),
+            color = MaterialTheme.colorScheme.primary,
             shape = CircleShape
         ) {
             Text(
@@ -1209,7 +1209,7 @@ fun PersonalInfoSection(
                     Icon(
                         if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        tint = Color.Gray
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Personal Info", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -1218,7 +1218,7 @@ fun PersonalInfoSection(
                     if (!isExpanded) onExpandedChange(true)
                     onEditClick()
                 }) {
-                    Text(if (isEditing) "Save" else "Edit", color = Color(0xFF006D37), fontWeight = FontWeight.Bold)
+                    Text(if (isEditing) "Save" else "Edit", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
             }
             
@@ -1321,7 +1321,7 @@ fun GenderDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
-        Text("Gender", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+        Text("Gender", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(4.dp))
         
         if (isEditing) {
@@ -1341,7 +1341,7 @@ fun GenderDropdown(
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedIndicatorColor = Color(0xFF006D37)
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary
                     )
                 )
                 ExposedDropdownMenu(
@@ -1391,7 +1391,7 @@ fun GoalPaceDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
-        Text("Goal Pace", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+        Text("Goal Pace", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(4.dp))
         
         if (isEditing) {
@@ -1411,7 +1411,7 @@ fun GoalPaceDropdown(
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedIndicatorColor = Color(0xFF006D37)
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary
                     )
                 )
                 ExposedDropdownMenu(
@@ -1461,7 +1461,7 @@ fun ActivityLevelDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
-        Text("Activity Level", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+        Text("Activity Level", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(4.dp))
         
         if (isEditing) {
@@ -1481,7 +1481,7 @@ fun ActivityLevelDropdown(
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedIndicatorColor = Color(0xFF006D37)
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary
                     )
                 )
                 ExposedDropdownMenu(
@@ -1529,7 +1529,7 @@ fun EditableInfoItem(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(modifier = Modifier.height(4.dp))
         if (isEditing) {
             TextField(
@@ -1590,7 +1590,7 @@ fun NutritionalGoalsSection(
                     }
                     isEditing = !isEditing 
                 }) {
-                    Text(if (isEditing) "Save" else "Edit", color = Color(0xFF006D37), fontWeight = FontWeight.Bold)
+                    Text(if (isEditing) "Save" else "Edit", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -1605,7 +1605,7 @@ fun NutritionalGoalsSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color(0xFF006D37))
+                        Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Daily Calories", style = MaterialTheme.typography.bodyLarge)
                     }
@@ -1618,7 +1618,7 @@ fun NutritionalGoalsSection(
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color.Transparent,
                                 unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color(0xFF006D37)
+                                focusedIndicatorColor = MaterialTheme.colorScheme.primary
                             ),
                             textStyle = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold,
@@ -1660,7 +1660,7 @@ fun MacroGoalBadge(label: String, value: String, bgColor: Color, textColor: Colo
             modifier = Modifier.padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = textColor)
         }
     }
@@ -1698,7 +1698,7 @@ fun AccountItem(label: String, value: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.bodyLarge)
         }
         Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
@@ -1749,7 +1749,7 @@ fun LogFoodScreenContent(
         Text(
             "Describe your meal in your own words.",
             style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -1769,13 +1769,13 @@ fun LogFoodScreenContent(
                         Icon(
                             Icons.Default.AutoAwesome,
                             contentDescription = null,
-                            tint = Color(0xFF2ECC71),
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             "AI Food Assistant",
-                            color = Color(0xFF006D37),
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -1802,7 +1802,7 @@ fun LogFoodScreenContent(
                     placeholder = {
                         Text(
                             "e.g., I had two eggs and a piece of whole grain toast with a small avocado for breakfast...",
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
                     modifier = Modifier
@@ -1822,7 +1822,7 @@ fun LogFoodScreenContent(
                     onClick = { onAnalyzeMeal(mealInput) },
                     modifier = Modifier.align(Alignment.End),
                     enabled = uiState !is FoodAssistantUiState.Loading,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006D37)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(24.dp)
                 ) {
                     if (uiState is FoodAssistantUiState.Loading) {
@@ -1849,8 +1849,8 @@ fun LogFoodScreenContent(
             title = "Be Specific",
             description = "Mention portion sizes like 'a handful' or 'half a plate' for better accuracy.",
             modifier = Modifier.fillMaxWidth(),
-            containerColor = Color(0xFFE3F2FD),
-            contentColor = Color(0xFF1976D2)
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -1892,30 +1892,18 @@ fun ReviewMealScreenContent(
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF006D37))
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "Review Meal",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Color(0xFF006D37),
-                    fontWeight = FontWeight.Bold
-                )
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.primary)
             }
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                // Image placeholder
-                Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(8.dp))
-            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                "Review Meal",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
         }
 
         LazyColumn(
@@ -1928,7 +1916,7 @@ fun ReviewMealScreenContent(
                 Text(
                     "\"${macro.originalInput}\"",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                 )
             }
@@ -1948,14 +1936,14 @@ fun ReviewMealScreenContent(
                             modifier = Modifier.padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("TOTAL CALORIES", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                            Text("TOTAL CALORIES", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 macro.totalCalories.toString(),
                                 style = MaterialTheme.typography.displayMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF006D37)
+                                color = MaterialTheme.colorScheme.primary
                             )
-                            Text("kcal", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                            Text("kcal", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 
@@ -1984,7 +1972,7 @@ fun ReviewMealScreenContent(
                     Text(
                         "Tag this meal (Optional)",
                         style = MaterialTheme.typography.labelLarge,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     Row(
@@ -1998,7 +1986,7 @@ fun ReviewMealScreenContent(
                             Surface(
                                 onClick = { selectedMealType = if (isSelected) null else type },
                                 shape = RoundedCornerShape(20.dp),
-                                color = if (isSelected) Color(0xFF006D37) else MaterialTheme.colorScheme.surface,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
                                 border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray),
                                 modifier = Modifier.height(40.dp)
                             ) {
@@ -2009,7 +1997,7 @@ fun ReviewMealScreenContent(
                                     Text(
                                         text = type,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if (isSelected) Color.White else Color.Gray,
+                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
                                 }
@@ -2023,43 +2011,6 @@ fun ReviewMealScreenContent(
                 DetectedItemCard(item)
             }
 
-            item {
-                OutlinedButton(
-                    onClick = { },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(alpha = 0.5f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Add another item")
-                }
-            }
-
-            item {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Lightbulb, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            "Did you add any butter or oil to your toast or eggs? Tapping an item lets you add condiments.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                }
-            }
-            
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
 
@@ -2077,7 +2028,7 @@ fun ReviewMealScreenContent(
                     .fillMaxWidth()
                     .padding(16.dp)
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006D37)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2ECC71)),
                 shape = RoundedCornerShape(28.dp)
             ) {
                 Icon(Icons.Default.CheckCircle, contentDescription = null)
@@ -2133,11 +2084,8 @@ fun DetectedItemCard(item: FoodItemAnalysis) {
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(item.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Text(item.description, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                        Text(item.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                }
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray)
                 }
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant)
@@ -2147,7 +2095,7 @@ fun DetectedItemCard(item: FoodItemAnalysis) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("CAL", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text("CAL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(item.calories.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color(0xFF446180))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -2163,7 +2111,7 @@ fun DetectedItemCard(item: FoodItemAnalysis) {
 @Composable
 fun MacroMiniInfo(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
     }
 }
@@ -2232,13 +2180,13 @@ fun SettingsScreenContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF006D37))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.primary)
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 "Settings",
                 style = MaterialTheme.typography.headlineMedium,
-                color = Color(0xFF006D37),
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -2341,7 +2289,7 @@ fun SettingsScreenContent(
                     Text(
                         "Your key is stored securely on your device.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
                     TextField(
@@ -2363,7 +2311,7 @@ fun SettingsScreenContent(
                     onApiKeyChange(tempApiKey)
                     showApiKeyDialog = false
                 }) {
-                    Text("Save", color = Color(0xFF006D37), fontWeight = FontWeight.Bold)
+                    Text("Save", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -2418,7 +2366,7 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
             title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
         )
         Card(
@@ -2453,7 +2401,7 @@ fun SettingsToggleItem(
             Column {
                 Text(label, style = MaterialTheme.typography.bodyLarge)
                 if (subtitle != null) {
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -2487,7 +2435,7 @@ fun SettingsClickItem(
             Text(label, style = MaterialTheme.typography.bodyLarge)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(value, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
         }
     }
@@ -2531,7 +2479,7 @@ fun SettingsInputItem(
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedIndicatorColor = Color(0xFF006D37)
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary
             ),
             shape = RoundedCornerShape(12.dp)
         )
@@ -2589,12 +2537,12 @@ fun VitalityTopBar(
             Text(
                 "AI Macro Tracker",
                 style = MaterialTheme.typography.headlineMedium,
-                color = Color(0xFF006D37),
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
             )
         }
         IconButton(onClick = onSettingsClick) {
-            Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = Color(0xFF006D37))
+            Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -2604,7 +2552,7 @@ fun CalorieOverview(consumed: Int, goal: Int) {
     val progress = (consumed.toFloat() / goal).coerceIn(0f, 1f)
     val percentage = (progress * 100).toInt()
     val isOverBudget = consumed > goal
-    val arcColor = if (isOverBudget) Color(0xFFC0392B) else Color(0xFF2ECC71)
+    val arcColor = if (isOverBudget) Color(0xFFC0392B) else MaterialTheme.colorScheme.primary
     
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -2629,7 +2577,7 @@ fun CalorieOverview(consumed: Int, goal: Int) {
                 Text(
                     "/ $goal KCAL",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -2675,7 +2623,7 @@ fun MacroCard(label: String, value: String, progress: Float, color: Color, modif
                 inactiveColor = MaterialTheme.colorScheme.surfaceVariant
             )
             Spacer(modifier = Modifier.height(12.dp))
-            Text(label, style = MaterialTheme.typography.labelMedium, color = Color.Gray, fontWeight = FontWeight.Medium)
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
             Text(value, style = MaterialTheme.typography.titleLarge, color = displayColor, fontWeight = FontWeight.Bold)
         }
     }
@@ -2741,7 +2689,7 @@ fun FoodListItemEntity(foodEntity: FoodEntity) {
                 Text(
                     "${foodEntity.mealType} • ${foodEntity.time}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
@@ -2754,7 +2702,7 @@ fun FoodListItemEntity(foodEntity: FoodEntity) {
                 Text(
                     "kcal",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -2794,7 +2742,7 @@ fun FoodListItem(foodItem: FoodItem) {
                 Text(
                     "${foodItem.meal} • ${foodItem.time}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
@@ -2807,7 +2755,7 @@ fun FoodListItem(foodItem: FoodItem) {
                 Text(
                     "kcal",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
