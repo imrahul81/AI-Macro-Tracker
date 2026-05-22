@@ -410,9 +410,14 @@ fun MainScreenContent(
                 }
             }
             composable(Screen.ReviewMeal.route) {
+                var lastMacro by remember { mutableStateOf<MacroResponse?>(null) }
                 if (uiState is FoodAssistantUiState.Success) {
+                    lastMacro = uiState.macro
+                }
+
+                lastMacro?.let { macro ->
                     ReviewMealScreenContent(
-                        macro = uiState.macro,
+                        macro = macro,
                         onConfirmMeal = {
                             onConfirmMeal(it)
                             navController.navigate("main_tabs") {
