@@ -5,6 +5,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -29,9 +31,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -74,7 +74,6 @@ class MainActivity : ComponentActivity() {
             val viewModel: FoodAssistantViewModel = viewModel()
             val systemInDarkTheme = isSystemInDarkTheme()
             
-            // Determine theme based on user preference or system theme
             val darkTheme = if (viewModel.useSystemTheme) {
                 systemInDarkTheme
             } else {
@@ -154,7 +153,7 @@ fun MainScreen(viewModel: FoodAssistantViewModel = viewModel()) {
         historyDate = historyDate,
         uiState = uiState,
         recentMeals = recentMeals,
-        onAnalyzeMeal = { viewModel.analyzeMeal(it) },
+        onAnalyzeMeal = { text, bitmap -> viewModel.analyzeMeal(text, bitmap) },
         onConfirmMeal = { viewModel.confirmMeal(it) },
         onResetState = { viewModel.resetState() },
         onDateSelected = { viewModel.setSelectedHistoryDate(it) },
@@ -211,7 +210,7 @@ fun MainScreenContent(
     historyDate: Long,
     uiState: FoodAssistantUiState,
     recentMeals: List<String>,
-    onAnalyzeMeal: (String) -> Unit,
+    onAnalyzeMeal: (String, Bitmap?) -> Unit,
     onConfirmMeal: (MacroResponse) -> Unit,
     onResetState: () -> Unit,
     onDateSelected: (Long) -> Unit,
@@ -628,7 +627,7 @@ fun MainDashboardContent(
         if (foods.isEmpty()) {
             item {
                 Text(
-                    "No meals logged today yet. Tap the + button to start!",
+                    "No meals logged today yet. Tap the Log Food button to start!",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 16.dp)
@@ -935,11 +934,21 @@ fun TimelineItem(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
+                                    val imageUrl = if (food.imageUrl.isNullOrBlank() || food.imageUrl == "null" || food.imageUrl == "string") {
+                                        "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=100&auto=format&fit=crop"
+                                    } else {
+                                        food.imageUrl
+                                    }
+                                    AsyncImage(
+                                        model = imageUrl,
+                                        contentDescription = food.name,
                                         modifier = Modifier
                                             .size(32.dp)
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0xFFF2F4F5))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                        placeholder = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                                        error = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(food.name, style = MaterialTheme.typography.bodyMedium)
@@ -1125,7 +1134,9 @@ fun ProfileHeader(name: String, imageUri: Uri?, onEditImage: () -> Unit, isEditi
                         model = imageUri,
                         contentDescription = "Profile Picture",
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        placeholder = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                        error = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
                     )
                 } else {
                     Icon(
@@ -1687,11 +1698,29 @@ fun MacroGoalBadge(label: String, value: String, bgColor: Color, textColor: Colo
 fun LogFoodScreenContent(
     uiState: FoodAssistantUiState,
     recentMeals: List<String>,
-    onAnalyzeMeal: (String) -> Unit,
+    onAnalyzeMeal: (String, Bitmap?) -> Unit,
     onSuccess: () -> Unit,
     onResetState: () -> Unit
 ) {
     var mealInput by remember { mutableStateOf("") }
+    var selectedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var showImageSourceDialog by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        uri?.let {
+            val inputStream = context.contentResolver.openInputStream(it)
+            selectedBitmap = BitmapFactory.decodeStream(inputStream)
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        selectedBitmap = bitmap
+    }
 
     val speechLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -1703,6 +1732,30 @@ fun LogFoodScreenContent(
                 mealInput = results[0]
             }
         }
+    }
+
+    if (showImageSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showImageSourceDialog = false },
+            title = { Text("Select Image Source") },
+            text = { Text("Snap a photo or choose from gallery to identify nutrients.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    imagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    showImageSourceDialog = false
+                }) {
+                    Text("Gallery", color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    cameraLauncher.launch(null)
+                    showImageSourceDialog = false
+                }) {
+                    Text("Camera", color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        )
     }
 
     LaunchedEffect(uiState) {
@@ -1732,90 +1785,99 @@ fun LogFoodScreenContent(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+            Column(modifier = Modifier.padding(12.dp)) {
+                if (selectedBitmap != null) {
+                    Box(modifier = Modifier.fillMaxWidth().height(160.dp).padding(bottom = 12.dp)) {
+                        AsyncImage(
+                            model = selectedBitmap,
+                            contentDescription = "Selected image",
+                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp)),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "AI Food Assistant",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
-                                putExtra(RecognizerIntent.EXTRA_PROMPT, "Describe your meal...")
-                            }
-                            speechLauncher.launch(intent)
-                        },
-                        modifier = Modifier
-                            .background(Color(0xFFE3F2FD), CircleShape)
-                            .size(40.dp)
-                    ) {
-                        Icon(Icons.Default.MicNone, contentDescription = "Voice", tint = Color(0xFF1976D2))
+                        IconButton(
+                            onClick = { selectedBitmap = null },
+                            modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape).size(28.dp)
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Remove image", tint = Color.White, modifier = Modifier.size(14.dp))
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+
                 TextField(
                     value = mealInput,
                     onValueChange = { mealInput = it },
                     placeholder = {
                         Text(
-                            "e.g., I had two eggs and a piece of whole grain toast with a small avocado for breakfast...",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            "Message AI Assistant...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
-                        .clip(RoundedCornerShape(12.dp)),
+                    modifier = Modifier.fillMaxWidth(),
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
-                    )
+                    ),
+                    textStyle = MaterialTheme.typography.bodyLarge
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { onAnalyzeMeal(mealInput) },
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .height(56.dp),
-                    enabled = uiState !is FoodAssistantUiState.Loading,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(28.dp)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    if (uiState is FoodAssistantUiState.Loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
+                    IconButton(
+                        onClick = { showImageSourceDialog = true },
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), CircleShape)
+                            .size(40.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Attach", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(
+                            onClick = {
+                                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+                                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Describe your meal...")
+                                }
+                                speechLauncher.launch(intent)
+                            },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(Icons.Default.MicNone, contentDescription = "Voice", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Analyzing...")
-                    } else {
-                        Text("Analyze")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+
+                        IconButton(
+                            onClick = { onAnalyzeMeal(mealInput, selectedBitmap) },
+                            enabled = uiState !is FoodAssistantUiState.Loading && (mealInput.isNotBlank() || selectedBitmap != null),
+                            modifier = Modifier
+                                .background(
+                                    if (mealInput.isNotBlank() || selectedBitmap != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                                    CircleShape
+                                )
+                                .size(40.dp)
+                        ) {
+                            if (uiState is FoodAssistantUiState.Loading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(Icons.Default.ArrowUpward, contentDescription = "Analyze", tint = Color.White)
+                            }
+                        }
                     }
                 }
             }
@@ -1852,23 +1914,6 @@ fun LogFoodScreenContent(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
         )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Show result overlay - REMOVED, replaced by navigation to ReviewMeal
-        
-        if (uiState is FoodAssistantUiState.Error) {
-            AlertDialog(
-                onDismissRequest = onResetState,
-                title = { Text("Analysis Failed") },
-                text = { Text(uiState.message) },
-                confirmButton = {
-                    TextButton(onClick = onResetState) {
-                        Text("Retry")
-                    }
-                }
-            )
-        }
     }
 }
 
@@ -1886,7 +1931,6 @@ fun ReviewMealScreenContent(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Custom Top Bar for Review Screen
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -2079,7 +2123,9 @@ fun DetectedItemCard(item: FoodItemAnalysis) {
                             .size(48.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        placeholder = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                        error = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
@@ -2172,7 +2218,6 @@ fun SettingsScreenContent(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Custom Top Bar for Settings
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -2251,6 +2296,17 @@ fun SettingsScreenContent(
                             }
                         },
                         subtitle = "Get notified if you forget to log meals"
+                    )
+                }
+            }
+
+            item {
+                SettingsSection(title = "Data Management") {
+                    SettingsClickItem(
+                        label = "Clear All Data",
+                        value = "",
+                        icon = Icons.Default.DeleteForever,
+                        onClick = { /* Implement clear data logic */ }
                     )
                 }
             }
@@ -2517,7 +2573,9 @@ fun VitalityTopBar(
                             model = profileImageUri,
                             contentDescription = "Profile Picture",
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            placeholder = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                            error = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
                         )
                     } else {
                         Icon(
@@ -2574,11 +2632,11 @@ fun CalorieOverview(consumed: Int, goal: Int) {
                 )
                 Text(
                     "/ $goal KCAL",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Surface(
                     color = arcColor.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(24.dp)
@@ -2620,7 +2678,7 @@ fun MacroCard(label: String, value: String, progress: Float, color: Color, modif
                 strokeWidth = 8.dp,
                 inactiveColor = MaterialTheme.colorScheme.surfaceVariant
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 label, 
                 style = MaterialTheme.typography.labelLarge, 
@@ -2678,14 +2736,21 @@ fun FoodListItemEntity(foodEntity: FoodEntity) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val imageUrl = if (foodEntity.imageUrl.isNullOrBlank() || foodEntity.imageUrl == "null" || foodEntity.imageUrl == "string") {
+                "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop"
+            } else {
+                foodEntity.imageUrl
+            }
             AsyncImage(
-                model = foodEntity.imageUrl ?: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop",
+                model = imageUrl,
                 contentDescription = foodEntity.name,
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                placeholder = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                error = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -2739,7 +2804,9 @@ fun FoodListItem(foodItem: FoodItem) {
                     .size(64.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                placeholder = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                error = androidx.compose.ui.graphics.painter.ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -2853,7 +2920,7 @@ fun DashboardScreenPreview() {
             historyDate = System.currentTimeMillis(),
             uiState = FoodAssistantUiState.Idle,
             recentMeals = listOf("Oatmeal", "Greek Yogurt"),
-            onAnalyzeMeal = {},
+            onAnalyzeMeal = { _, _ -> },
             onConfirmMeal = {},
             onResetState = {},
             onDateSelected = {},
@@ -2871,7 +2938,7 @@ fun LogFoodScreenPreview() {
         LogFoodScreenContent(
             uiState = FoodAssistantUiState.Idle,
             recentMeals = listOf("Oatmeal", "Greek Yogurt"),
-            onAnalyzeMeal = {},
+            onAnalyzeMeal = { _, _ -> },
             onSuccess = {},
             onResetState = {}
         )

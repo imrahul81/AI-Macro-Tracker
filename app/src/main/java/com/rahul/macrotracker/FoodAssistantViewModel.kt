@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
+import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -379,8 +380,8 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
         coerceInputValues = true
     }
 
-    fun analyzeMeal(input: String) {
-        if (input.isBlank()) return
+    fun analyzeMeal(input: String, bitmap: Bitmap? = null) {
+        if (input.isBlank() && bitmap == null) return
 
         uiState = FoodAssistantUiState.Loading
         viewModelScope.launch {
@@ -391,19 +392,35 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
 
                 val prompt = """
                     You are a professional nutritionist assistant. 
-                    Analyze the following meal description and provide the nutritional information in JSON format.
+                    Analyze the following meal description ${if (bitmap != null) "and the provided image(s) " else ""}and provide the nutritional information in JSON format.
                     
                     Rules:
                     1. Breakdown the meal into individual items.
                     2. Estimate calories, protein, carbs, and fat for each item.
                     3. Calculate the total values for the entire meal.
                     4. 'description' should be a very short detail about the preparation (e.g., 'Large', '30g slice', 'Boiled').
-                    5. Provide a realistic image URL for each food item from a public source like Unsplash (e.g., https://images.unsplash.com/photo-...) or similar. Use high quality food images.
+                    5. Provide a realistic image URL for each food item from Unsplash. 
+                       Format: https://images.unsplash.com/photo-<ID>?auto=format&fit=crop&w=400&q=80
+                       Rule: Only use a URL if you are certain the ID is valid. Do not invent IDs.
+                       Mandatory: You MUST provide an imageUrl for EVERY item. 
+                       If unsure, use one of these verified URLs:
+                       - Salad/Greens: https://images.unsplash.com/photo-1512621776951-dc4779abb16c?auto=format&fit=crop&w=400&q=80
+                       - Chicken/Meat: https://images.unsplash.com/photo-1632778149957-128a1c97716f?auto=format&fit=crop&w=400&q=80
+                       - Eggs: https://images.unsplash.com/photo-1525351484163-75294143a2d8?auto=format&fit=crop&w=400&q=80
+                       - Rice/Grain: https://images.unsplash.com/photo-1512058560521-f80bc4f450f4?auto=format&fit=crop&w=400&q=80
+                       - Watermelon: https://images.unsplash.com/photo-1563114773919-6316fa9ad4c2?auto=format&fit=crop&w=400&q=80
+                       - Mango: https://images.unsplash.com/photo-1553279768-846386506d18?auto=format&fit=crop&w=400&q=80
+                       - Coffee/Drink: https://images.unsplash.com/photo-1541173232614-5181735a7408?auto=format&fit=crop&w=400&q=80
+                       - Pizza: https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80
+                       - Burger: https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=80
+                       - Pasta: https://images.unsplash.com/photo-1473093226795-af9932fe5856?auto=format&fit=crop&w=400&q=80
+                       - General Food: https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80
+                       NEVER use the string "null" or "string". If you have no better URL, use the General Food URL above.
                     6. Detect if the user explicitly mentioned a meal type (Breakfast, Lunch, Afternoon Snack, Dinner). If found, put it in 'detectedMealType'.
                     
                     JSON Structure:
                     {
-                      "originalInput": "$input",
+                      "originalInput": "${input.ifBlank { "Image analysis" }}",
                       "detectedMealType": "string or null",
                       "items": [
                         {
@@ -425,7 +442,16 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
                     Only return the JSON object, no other text or markdown formatting.
                 """.trimIndent()
 
-                val response = generativeModel.generateContent(prompt)
+                val response = if (bitmap != null) {
+                    val inputContent = com.google.ai.client.generativeai.type.content {
+                        image(bitmap)
+                        text(prompt)
+                    }
+                    generativeModel.generateContent(inputContent)
+                } else {
+                    generativeModel.generateContent(prompt)
+                }
+
                 val responseText = response.text ?: throw Exception("Empty response")
                 
                 // Extract JSON if there's markdown or other text
