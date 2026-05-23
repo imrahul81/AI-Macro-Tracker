@@ -1704,7 +1704,7 @@ fun LogFoodScreenContent(
 ) {
     var mealInput by remember { mutableStateOf("") }
     var selectedBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var showImageSourceDialog by remember { mutableStateOf(false) }
+    var isMenuExpanded by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -1732,30 +1732,6 @@ fun LogFoodScreenContent(
                 mealInput = results[0]
             }
         }
-    }
-
-    if (showImageSourceDialog) {
-        AlertDialog(
-            onDismissRequest = { showImageSourceDialog = false },
-            title = { Text("Select Image Source") },
-            text = { Text("Snap a photo or choose from gallery to identify nutrients.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    imagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    showImageSourceDialog = false
-                }) {
-                    Text("Gallery", color = MaterialTheme.colorScheme.primary)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    cameraLauncher.launch(null)
-                    showImageSourceDialog = false
-                }) {
-                    Text("Camera", color = MaterialTheme.colorScheme.primary)
-                }
-            }
-        )
     }
 
     LaunchedEffect(uiState) {
@@ -1832,13 +1808,38 @@ fun LogFoodScreenContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    IconButton(
-                        onClick = { showImageSourceDialog = true },
-                        modifier = Modifier
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), CircleShape)
-                            .size(40.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Attach", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Box {
+                        IconButton(
+                            onClick = { isMenuExpanded = true },
+                            modifier = Modifier
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f), CircleShape)
+                                .size(40.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Attach", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+
+                        DropdownMenu(
+                            expanded = isMenuExpanded,
+                            onDismissRequest = { isMenuExpanded = false },
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surface)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Gallery") },
+                                onClick = {
+                                    imagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                    isMenuExpanded = false
+                                },
+                                leadingIcon = { Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Camera") },
+                                onClick = {
+                                    cameraLauncher.launch(null)
+                                    isMenuExpanded = false
+                                },
+                                leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                            )
+                        }
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
