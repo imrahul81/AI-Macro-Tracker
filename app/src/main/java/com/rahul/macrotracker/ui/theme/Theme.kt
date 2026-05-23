@@ -18,12 +18,12 @@ private val DarkColorScheme = darkColorScheme(
     onPrimaryContainer = OnPrimary,
     secondary = SecondaryContainer,
     onSecondary = OnSecondaryContainer,
-    background = Color.Black,
-    surface = Color(0xFF0F1112), // Slightly off-black for card/surface popping
+    background = Color(0xFF0A0C0D), // Very dark background
+    surface = Color(0xFF1E2123), // Lighter surface to pop against background
     onBackground = Color.White,
     onSurface = Color.White,
-    surfaceVariant = Color(0xFF1E2021), // Even lighter for secondary surfaces
-    onSurfaceVariant = Color.LightGray
+    surfaceVariant = Color(0xFF2C2F32), // Even lighter for secondary surfaces
+    onSurfaceVariant = Color(0xFFB0B3B5) // Brighter light gray
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -57,11 +57,12 @@ fun MacroTrackerTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
+        // Force custom dark scheme to avoid "blending in" issue with dynamic colors
+        darkTheme -> DarkColorScheme
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
 
