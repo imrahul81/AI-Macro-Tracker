@@ -346,29 +346,20 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    // Dynamic Macro Calculations
+    // Dynamic Macro Calculations - Using 30% Protein (max 2g/kg), 20% Fat, Remaining Carbs
     val proteinGoal: Int
         get() {
             val weightKg = weight.toDoubleOrNull() ?: 70.0
-            val proteinPerKg = when (activityLevel) {
-                "Sedentary" -> 1.2
-                "Lightly active" -> 1.5
-                "Moderately active" -> 1.8
-                "Very active" -> 2.2
-                else -> 1.5
-            }
-            return (weightKg * proteinPerKg).toInt()
+            val proteinFromPercentage = (dailyCalorieGoal * 0.30 / 4).toInt()
+            val proteinCap = (weightKg * 2.0).toInt()
+            return proteinFromPercentage.coerceAtMost(proteinCap)
         }
 
     val fatGoal: Int
-        get() {
-            // Usually 25-30% of calories
-            return (dailyCalorieGoal * 0.25 / 9).toInt()
-        }
+        get() = (dailyCalorieGoal * 0.20 / 9).toInt()
 
     val carbsGoal: Int
         get() {
-            // Remaining calories
             val proteinCalories = proteinGoal * 4
             val fatCalories = fatGoal * 9
             val carbCalories = dailyCalorieGoal - proteinCalories - fatCalories
@@ -537,10 +528,10 @@ class FoodAssistantViewModel(application: Application) : AndroidViewModel(applic
 
         // Goal Adjustment
         val paceAdjustment = when (goalPace) {
-            "Moderate" -> 250.0
+            "Easy" -> 200.0
+            "Moderate" -> 300.0
             "Aggressive" -> 500.0
-            "Extreme" -> 1000.0
-            else -> 250.0
+            else -> 300.0
         }
 
         val finalCalorieGoal = if (targetW < w) {

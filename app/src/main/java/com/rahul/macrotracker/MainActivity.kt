@@ -1414,7 +1414,7 @@ fun GoalPaceDropdown(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val options = listOf("Moderate", "Aggressive", "Extreme")
+    val options = listOf("Easy", "Moderate", "Aggressive")
     var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
